@@ -1,11 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { formatHuf, toNumber } from '../lib/currency'
 import {
   addMonths,
-  formatPeriodLabel,
-  formatHungarianMonth,
+  formatActivePeriodLabel,
   getCurrentMonthRange,
-  getCurrentLocalMonth,
   getMonthRange,
 } from '../lib/date'
 import { exportTransactionsXlsx } from '../lib/exportTransactions'
@@ -51,15 +49,11 @@ export function DashboardView({
   isLoggingOut,
 }: DashboardViewProps) {
   const initialMonthRange = getCurrentMonthRange()
-  const [selectedMonth, setSelectedMonth] = useState(getCurrentLocalMonth)
+  const loadRequestRef = useRef(0)
   const [account, setAccount] = useState<CashAccount | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [filteredTransactions, setFilteredTransactions] = useState<
-    Transaction[]
-  >([])
   const [isLoading, setIsLoading] = useState(true)
-  const [isListLoading, setIsListLoading] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [selectedTransaction, setSelectedTransaction] =
@@ -68,8 +62,6 @@ export function DashboardView({
   const [isDeleting, setIsDeleting] = useState(false)
   const [transactionFilter, setTransactionFilter] =
     useState<TransactionTypeFilter>('all')
-  const [dateFromInput, setDateFromInput] = useState(initialMonthRange.firstDay)
-  const [dateToInput, setDateToInput] = useState(initialMonthRange.lastDay)
   const [dateFrom, setDateFrom] = useState(initialMonthRange.firstDay)
   const [dateTo, setDateTo] = useState(initialMonthRange.lastDay)
   const [listError, setListError] = useState<string | null>(null)
@@ -82,12 +74,30 @@ export function DashboardView({
         ? 'Kiadások'
         : 'Tranzakciók'
 
-  const periodHeading =
-    dateFrom && dateTo && dateFrom.slice(0, 7) === dateTo.slice(0, 7)
-      ? formatHungarianMonth(new Date(`${dateFrom}T00:00:00`))
-      : formatPeriodLabel(dateFrom, dateTo)
+  const activePeriodHeading = formatActivePeriodLabel(dateFrom, dateTo)
+
+  const activeRangeTransactions = useMemo(
+    () =>
+      transactions.filter(
+        (transaction) =>
+          transaction.transaction_date >= dateFrom &&
+          transaction.transaction_date <= dateTo,
+      ),
+    [dateFrom, dateTo, transactions],
+  )
+
+  const filteredTransactions = useMemo(
+    () =>
+      activeRangeTransactions.filter(
+        (transaction) =>
+          transactionFilter === 'all' ||
+          transaction.type === transactionFilter,
+      ),
+    [activeRangeTransactions, transactionFilter],
+  )
 
   const loadDashboard = useCallback(async () => {
+    const requestId = ++loadRequestRef.current
     setIsLoading(true)
     setMessage(null)
 
@@ -95,6 +105,10 @@ export function DashboardView({
       .from('cash_accounts')
       .select('*')
       .eq('user_id', userId)
+
+    if (requestId !== loadRequestRef.current) {
+      return
+    }
 
     if (accountError) {
       setMessage({
@@ -104,7 +118,6 @@ export function DashboardView({
       setAccount(null)
       setCategories([])
       setTransactions([])
-      setFilteredTransactions([])
       setIsLoading(false)
       return
     }
@@ -117,7 +130,6 @@ export function DashboardView({
       setAccount(null)
       setCategories([])
       setTransactions([])
-      setFilteredTransactions([])
       setIsLoading(false)
       return
     }
@@ -140,6 +152,10 @@ export function DashboardView({
         .order('created_at', { ascending: false }),
     ])
 
+    if (requestId !== loadRequestRef.current) {
+      return
+    }
+
     if (categoryError || transactionError) {
       setMessage({
         type: 'error',
@@ -151,7 +167,6 @@ export function DashboardView({
       setAccount(defaultAccount)
       setCategories([])
       setTransactions([])
-      setFilteredTransactions([])
       setIsLoading(false)
       return
     }
@@ -162,46 +177,6 @@ export function DashboardView({
     setIsLoading(false)
   }, [userId])
 
-  const loadFilteredTransactions = useCallback(
-    async (currentAccount: CashAccount) => {
-      if (!dateFrom || !dateTo) {
-        setFilteredTransactions([])
-        setListError('Válassz érvényes időszakot a listához.')
-        return
-      }
-
-      setIsListLoading(true)
-      setListError(null)
-
-      let query = supabase
-        .from('transactions')
-        .select('*, categories(*)')
-        .eq('user_id', userId)
-        .eq('account_id', currentAccount.id)
-        .gte('transaction_date', dateFrom)
-        .lte('transaction_date', dateTo)
-        .order('transaction_date', { ascending: false })
-        .order('created_at', { ascending: false })
-
-      if (transactionFilter !== 'all') {
-        query = query.eq('type', transactionFilter)
-      }
-
-      const { data, error } = await query
-
-      if (error) {
-        setFilteredTransactions([])
-        setListError(`Nem sikerült betölteni a tranzakciókat: ${error.message}`)
-        setIsListLoading(false)
-        return
-      }
-
-      setFilteredTransactions((data ?? []) as Transaction[])
-      setIsListLoading(false)
-    },
-    [dateFrom, dateTo, transactionFilter, userId],
-  )
-
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       void loadDashboard()
@@ -210,55 +185,39 @@ export function DashboardView({
     return () => window.clearTimeout(timeoutId)
   }, [loadDashboard])
 
-  useEffect(() => {
-    if (!account) {
-      return
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      void loadFilteredTransactions(account)
-    }, 0)
-
-    return () => window.clearTimeout(timeoutId)
-  }, [account, loadFilteredTransactions])
-
   const dashboardTotals = useMemo(() => {
-    const monthRange = getMonthRange(selectedMonth)
     const openingBalance = toNumber(account?.opening_balance)
 
     return transactions.reduce(
       (totals, transaction) => {
         const amount = toNumber(transaction.amount)
         const signedAmount = transaction.type === 'income' ? amount : -amount
-        const isInSelectedMonth =
-          transaction.transaction_date >= monthRange.firstDay &&
-          transaction.transaction_date <= monthRange.lastDay
+        const isInActiveRange =
+          transaction.transaction_date >= dateFrom &&
+          transaction.transaction_date <= dateTo
 
         return {
           balance: totals.balance + signedAmount,
-          monthlyIncome:
-            isInSelectedMonth && transaction.type === 'income'
-              ? totals.monthlyIncome + amount
-              : totals.monthlyIncome,
-          monthlyExpenses:
-            isInSelectedMonth && transaction.type === 'expense'
-              ? totals.monthlyExpenses + amount
-              : totals.monthlyExpenses,
+          rangeIncome:
+            isInActiveRange && transaction.type === 'income'
+              ? totals.rangeIncome + amount
+              : totals.rangeIncome,
+          rangeExpenses:
+            isInActiveRange && transaction.type === 'expense'
+              ? totals.rangeExpenses + amount
+              : totals.rangeExpenses,
         }
       },
       {
         balance: openingBalance,
-        monthlyIncome: 0,
-        monthlyExpenses: 0,
+        rangeIncome: 0,
+        rangeExpenses: 0,
       },
     )
-  }, [account?.opening_balance, selectedMonth, transactions])
+  }, [account?.opening_balance, dateFrom, dateTo, transactions])
 
   const handleTransactionSaved = async () => {
     await loadDashboard()
-    if (account) {
-      await loadFilteredTransactions(account)
-    }
     setMessage({
       type: 'success',
       text: 'A tranzakció mentése sikerült.',
@@ -267,9 +226,6 @@ export function DashboardView({
 
   const handleTransactionUpdated = async (transaction: Transaction) => {
     await loadDashboard()
-    if (account) {
-      await loadFilteredTransactions(account)
-    }
     setSelectedTransaction(transaction)
     setIsEditOpen(false)
     setMessage({
@@ -300,9 +256,6 @@ export function DashboardView({
     setSelectedTransaction(null)
     setIsEditOpen(false)
     await loadDashboard()
-    if (account) {
-      await loadFilteredTransactions(account)
-    }
     setMessage({
       type: 'success',
       text: 'A tranzakció törlése sikerült.',
@@ -318,33 +271,38 @@ export function DashboardView({
   }
 
   const handleMonthChange = (amount: number) => {
-    const nextMonth = addMonths(selectedMonth, amount)
+    // The month navigation intentionally resets the active range to the
+    // previous or next full calendar month, even if the current range spans
+    // multiple months.
+    const nextMonth = addMonths(new Date(`${dateFrom}T00:00:00`), amount)
     const nextRange = getMonthRange(nextMonth)
 
-    setSelectedMonth(nextMonth)
-    setDateFromInput(nextRange.firstDay)
-    setDateToInput(nextRange.lastDay)
     setDateFrom(nextRange.firstDay)
     setDateTo(nextRange.lastDay)
     setListError(null)
   }
 
-  const handleApplyDateRange = () => {
-    if (!dateFromInput || !dateToInput) {
-      setListError('Add meg a kezdő és a záró dátumot.')
+  const handleDateFromChange = (value: string) => {
+    if (!value) {
       return
     }
 
-    if (dateFromInput > dateToInput) {
-      setListError('A kezdő dátum nem lehet későbbi a záró dátumnál.')
+    setDateFrom(value)
+    if (dateTo && value > dateTo) {
+      setDateTo(value)
+    }
+    setListError(null)
+  }
+
+  const handleDateToChange = (value: string) => {
+    if (!value) {
       return
     }
 
-    setDateFrom(dateFromInput)
-    setDateTo(dateToInput)
-    setSelectedMonth(
-      new Date(`${dateFromInput}T00:00:00`),
-    )
+    setDateTo(value)
+    if (dateFrom && value < dateFrom) {
+      setDateFrom(value)
+    }
     setListError(null)
   }
 
@@ -421,7 +379,7 @@ export function DashboardView({
         />
 
         <div className="dashboard-actions">
-          <div className="month-selector" aria-label="Kiválasztott hónap">
+          <div className="month-selector" aria-label="Kiválasztott időszak">
             <button
               className="secondary-button compact-button month-nav-button"
               type="button"
@@ -433,7 +391,7 @@ export function DashboardView({
                 ‹
               </span>
             </button>
-            <strong>{periodHeading}</strong>
+            <strong>{activePeriodHeading}</strong>
             <button
               className="secondary-button compact-button month-nav-button"
               type="button"
@@ -481,7 +439,7 @@ export function DashboardView({
             onClick={() => handleSummaryFilter('income')}
           >
             <span>Havi bevétel</span>
-            <strong>{formatHuf(dashboardTotals.monthlyIncome)}</strong>
+            <strong>{formatHuf(dashboardTotals.rangeIncome)}</strong>
           </button>
           <button
             className={
@@ -494,15 +452,12 @@ export function DashboardView({
             onClick={() => handleSummaryFilter('expense')}
           >
             <span>Havi kiadás</span>
-            <strong>{formatHuf(dashboardTotals.monthlyExpenses)}</strong>
+            <strong>{formatHuf(dashboardTotals.rangeExpenses)}</strong>
           </button>
           <article className="metric-card">
             <span>Havi különbség</span>
             <strong>
-              {formatHuf(
-                dashboardTotals.monthlyIncome -
-                  dashboardTotals.monthlyExpenses,
-              )}
+              {formatHuf(dashboardTotals.rangeIncome - dashboardTotals.rangeExpenses)}
             </strong>
           </article>
         </div>
@@ -511,20 +466,17 @@ export function DashboardView({
           <TransactionList
             title={listTitle}
             transactions={filteredTransactions}
-            isLoading={isListLoading}
+            isLoading={false}
             error={listError}
             dateFrom={dateFrom}
             dateTo={dateTo}
-            dateFromInput={dateFromInput}
-            dateToInput={dateToInput}
             isExporting={isExporting}
             onSelect={(transaction) => {
               setSelectedTransaction(transaction)
               setIsEditOpen(false)
             }}
-            onDateFromChange={setDateFromInput}
-            onDateToChange={setDateToInput}
-            onApplyDateRange={handleApplyDateRange}
+            onDateFromChange={handleDateFromChange}
+            onDateToChange={handleDateToChange}
             onExport={() => void handleExport()}
           />
         </section>

@@ -1,5 +1,5 @@
 import { formatHuf, toNumber } from '../lib/currency'
-import { formatHungarianDate, formatPeriodLabel } from '../lib/date'
+import { formatActivePeriodLabel, formatHungarianDate } from '../lib/date'
 import type { Transaction } from '../types/finance'
 import { CompactDateRange } from './CompactDateRange'
 
@@ -10,13 +10,10 @@ type TransactionListProps = {
   error: string | null
   dateFrom: string
   dateTo: string
-  dateFromInput: string
-  dateToInput: string
   isExporting: boolean
   onSelect: (transaction: Transaction) => void
   onDateFromChange: (value: string) => void
   onDateToChange: (value: string) => void
-  onApplyDateRange: () => void
   onExport: () => void
 }
 
@@ -27,28 +24,18 @@ export function TransactionList({
   error,
   dateFrom,
   dateTo,
-  dateFromInput,
-  dateToInput,
   isExporting,
   onSelect,
   onDateFromChange,
   onDateToChange,
-  onApplyDateRange,
   onExport,
 }: TransactionListProps) {
-  const isDateRangeInvalid =
-    !dateFromInput || !dateToInput || dateFromInput > dateToInput
-  const dateRangeError =
-    dateFromInput && dateToInput && dateFromInput > dateToInput
-      ? 'A kezdő dátum nem lehet későbbi a záró dátumnál.'
-      : null
-
   return (
     <div className="transaction-list-panel">
       <div className="section-heading">
         <div>
           <h2>{title}</h2>
-          <span>{formatPeriodLabel(dateFrom, dateTo)}</span>
+          <span>{formatActivePeriodLabel(dateFrom, dateTo)}</span>
         </div>
         <div className="transaction-header-actions">
           <details className="mobile-action-menu">
@@ -67,19 +54,11 @@ export function TransactionList({
 
       <div className="filter-panel">
         <CompactDateRange
-          dateFromInput={dateFromInput}
-          dateToInput={dateToInput}
+          dateFrom={dateFrom}
+          dateTo={dateTo}
           onDateFromChange={onDateFromChange}
           onDateToChange={onDateToChange}
         />
-        <button
-          className="secondary-button compact-button"
-          type="button"
-          onClick={onApplyDateRange}
-          disabled={isDateRangeInvalid || isLoading}
-        >
-          {isLoading ? 'Betöltés...' : 'Alkalmazás'}
-        </button>
         <button
           className="secondary-button compact-button desktop-export-button inline-export-button"
           type="button"
@@ -89,12 +68,6 @@ export function TransactionList({
           {isExporting ? 'Exportálás...' : 'Exportálás XLSX'}
         </button>
       </div>
-
-      {dateRangeError ? (
-        <p className="message error" role="status">
-          {dateRangeError}
-        </p>
-      ) : null}
 
       {error ? (
         <p className="message error" role="status">

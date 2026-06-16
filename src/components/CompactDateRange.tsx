@@ -1,6 +1,6 @@
 type CompactDateRangeProps = {
-  dateFromInput: string
-  dateToInput: string
+  dateFrom: string
+  dateTo: string
   onDateFromChange: (value: string) => void
   onDateToChange: (value: string) => void
 }
@@ -21,8 +21,8 @@ function CalendarIcon() {
 }
 
 export function CompactDateRange({
-  dateFromInput,
-  dateToInput,
+  dateFrom,
+  dateTo,
   onDateFromChange,
   onDateToChange,
 }: CompactDateRangeProps) {
@@ -33,7 +33,7 @@ export function CompactDateRange({
         <input
           id="dateFrom"
           type="date"
-          value={dateFromInput}
+          value={dateFrom}
           onChange={(event) => onDateFromChange(event.target.value)}
         />
       </label>
@@ -42,7 +42,7 @@ export function CompactDateRange({
         <input
           id="dateTo"
           type="date"
-          value={dateToInput}
+          value={dateTo}
           onChange={(event) => onDateToChange(event.target.value)}
         />
       </label>
@@ -56,7 +56,7 @@ export function CompactDateRange({
           id="dateFromMobile"
           type="date"
           aria-label="Kezdő dátum kiválasztása"
-          value={dateFromInput}
+          value={dateFrom}
           onChange={(event) => onDateFromChange(event.target.value)}
         />
       </label>
@@ -69,7 +69,7 @@ export function CompactDateRange({
           id="dateToMobile"
           type="date"
           aria-label="Záró dátum kiválasztása"
-          value={dateToInput}
+          value={dateTo}
           onChange={(event) => onDateToChange(event.target.value)}
         />
       </label>

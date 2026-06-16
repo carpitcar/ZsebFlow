@@ -60,5 +60,39 @@ export const formatCompactDate = (dateValue: string) =>
     day: 'numeric',
   }).format(new Date(`${dateValue}T00:00:00`))
 
+export const isFullCalendarMonthRange = (
+  dateFrom: string,
+  dateTo: string,
+) => {
+  if (!dateFrom || !dateTo) {
+    return false
+  }
+
+  const fromDate = new Date(`${dateFrom}T00:00:00`)
+  const toDate = new Date(`${dateTo}T00:00:00`)
+  const firstDayOfMonth = new Date(
+    fromDate.getFullYear(),
+    fromDate.getMonth(),
+    1,
+  )
+  const lastDayOfMonth = new Date(
+    fromDate.getFullYear(),
+    fromDate.getMonth() + 1,
+    0,
+  )
+
+  return (
+    fromDate.getFullYear() === toDate.getFullYear() &&
+    fromDate.getMonth() === toDate.getMonth() &&
+    fromDate.getTime() === firstDayOfMonth.getTime() &&
+    toDate.getTime() === lastDayOfMonth.getTime()
+  )
+}
+
+export const formatActivePeriodLabel = (dateFrom: string, dateTo: string) =>
+  isFullCalendarMonthRange(dateFrom, dateTo)
+    ? formatHungarianMonth(new Date(`${dateFrom}T00:00:00`))
+    : formatPeriodLabel(dateFrom, dateTo)
+
 export const formatPeriodLabel = (dateFrom: string, dateTo: string) =>
   `${formatCompactDate(dateFrom)} – ${formatCompactDate(dateTo)}`

@@ -479,7 +479,7 @@ button.metric-card {
 
 .filter-panel {
   display: grid;
-  grid-template-columns: repeat(2, minmax(160px, 1fr)) auto auto;
+  grid-template-columns: repeat(2, minmax(160px, 1fr)) auto;
   gap: 12px;
   align-items: end;
   background: var(--surface-strong);
@@ -1036,9 +1036,8 @@ button.metric-card {
   .month-selector strong {
     font-size: 14px;
     line-height: 1.2;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
+    white-space: normal;
   }
 
   .month-nav-button {
@@ -1114,12 +1113,16 @@ button.metric-card {
 
   .section-heading span {
     font-size: 12px;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+    white-space: normal;
   }
 
   .filter-panel {
-    grid-template-columns: 52px 52px minmax(0, 1fr);
+    grid-template-columns: 56px 56px auto;
     gap: 8px;
     padding: 10px;
+    justify-content: start;
   }
 
   .desktop-date-field {
@@ -1128,14 +1131,14 @@ button.metric-card {
 
   .mobile-date-field {
     display: flex;
-    width: 52px;
-    height: 52px;
-    min-height: 52px;
+    width: 56px;
+    height: 56px;
+    min-height: 56px;
   }
 
   .mobile-date-field svg {
-    width: 28px;
-    height: 28px;
+    width: 30px;
+    height: 30px;
   }
 
   .filter-panel .compact-button {
@@ -1220,6 +1223,29 @@ button.metric-card {
     gap: 10px;
   }
 
+  .category-manager {
+    gap: 12px;
+  }
+
+  .category-manager .subtle-text {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    line-height: 1.35;
+  }
+
+  .category-group {
+    gap: 8px;
+  }
+
+  .category-group h3 {
+    font-size: 14px;
+  }
+
+  .category-list {
+    gap: 8px;
+  }
+
   .settings-entry-button {
     min-height: 48px;
     padding: 10px 12px;
@@ -1259,23 +1285,42 @@ button.metric-card {
 
   .category-form,
   .category-edit-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .category-form > *,
+  .category-edit-grid > *,
+  .category-form input,
+  .category-form select,
+  .category-edit-grid input {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
   }
 
   .category-form .primary-button,
   .category-edit-grid .category-actions {
-    grid-column: 1 / -1;
+    grid-column: auto;
   }
 
   .category-item {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: 8px;
-    padding: 10px;
+    align-items: center;
+    padding: 8px 9px;
   }
 
   .category-main {
     gap: 8px;
+    min-width: 0;
+  }
+
+  .category-main div {
+    min-width: 0;
   }
 
   .category-icon-large {
@@ -1288,17 +1333,25 @@ button.metric-card {
     font-size: 12px;
   }
 
+  .category-main strong,
+  .category-main span:not(.category-icon-large) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .category-actions {
     display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    justify-content: flex-start;
+    flex-wrap: nowrap;
+    gap: 4px;
+    justify-content: flex-end;
+    min-width: 0;
   }
 
   .category-actions .compact-button {
-    min-height: 34px;
-    padding: 6px 8px;
-    font-size: 12px;
+    min-height: 32px;
+    padding: 5px 7px;
+    font-size: 11px;
   }
 
   .details-list div {

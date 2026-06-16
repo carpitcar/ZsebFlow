@@ -352,6 +352,7 @@ export function CategoryManager({ userId }: CategoryManagerProps) {
                       <button
                         className="secondary-button compact-button"
                         type="button"
+                        aria-label="Kategória szerkesztése"
                         onClick={() => startEditing(category)}
                         disabled={isSaving}
                       >
@@ -360,6 +361,7 @@ export function CategoryManager({ userId }: CategoryManagerProps) {
                       <button
                         className="secondary-button compact-button danger-button"
                         type="button"
+                        aria-label="Kategória törlése"
                         onClick={() => void handleDelete(category)}
                         disabled={isSaving}
                       >
