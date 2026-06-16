@@ -48,6 +48,7 @@ export function ProfileView({
 }: ProfileViewProps) {
   const [editableFullName, setEditableFullName] = useState(fullName)
   const [isSaving, setIsSaving] = useState(false)
+  const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false)
   const [message, setMessage] = useState<Message | null>(null)
 
   const handleSave = async (event: FormEvent<HTMLFormElement>) => {
@@ -104,6 +105,21 @@ export function ProfileView({
       text: 'A profiladatok mentése sikerült.',
     })
     setIsSaving(false)
+  }
+
+  if (isCategoryManagerOpen) {
+    return (
+      <main className="app-shell page-shell">
+        <section className="settings-panel">
+          <AppHeader
+            subtitle="Kategóriák"
+            onBack={() => setIsCategoryManagerOpen(false)}
+            onBrandClick={onBack}
+          />
+          <CategoryManager userId={userId} />
+        </section>
+      </main>
+    )
   }
 
   return (
@@ -185,7 +201,19 @@ export function ProfileView({
           </div>
         </section>
 
-        <CategoryManager userId={userId} />
+        <section className="settings-section">
+          <button
+            className="settings-entry-button"
+            type="button"
+            onClick={() => setIsCategoryManagerOpen(true)}
+          >
+            <span>
+              <strong>Kategóriák kezelése</strong>
+              <small>Bevételi és kiadási kategóriák</small>
+            </span>
+            <span aria-hidden="true">›</span>
+          </button>
+        </section>
 
         <button
           className="secondary-button danger-button"

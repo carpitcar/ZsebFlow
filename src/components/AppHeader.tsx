@@ -22,7 +22,7 @@ function ArrowLeftIcon() {
 
 function UserIcon() {
   return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20">
+    <svg aria-hidden="true" viewBox="0 0 24 24" width="24" height="24">
       <path
         d="M20 21a8 8 0 0 0-16 0"
         fill="none"
@@ -59,37 +59,41 @@ export function AppHeader({
 
   return (
     <header className="app-header">
-      {onBack ? (
-        <button
-          className="icon-button"
-          type="button"
-          aria-label="Vissza"
-          onClick={onBack}
-        >
-          <ArrowLeftIcon />
-        </button>
-      ) : null}
+      <div className="app-header__main">
+        {onBack ? (
+          <button
+            className="icon-button app-header__back-button"
+            type="button"
+            aria-label="Vissza"
+            onClick={onBack}
+          >
+            <ArrowLeftIcon />
+          </button>
+        ) : null}
 
-      {onBrandClick ? (
-        <button className="brand-button" type="button" onClick={onBrandClick}>
-          {title}
-        </button>
-      ) : (
-        <div className="brand-block">{title}</div>
-      )}
+        {onBrandClick ? (
+          <button
+            className="brand-button app-header__title-group"
+            type="button"
+            onClick={onBrandClick}
+          >
+            {title}
+          </button>
+        ) : (
+          <div className="brand-block app-header__title-group">{title}</div>
+        )}
 
-      {onProfile ? (
-        <button
-          className="icon-button"
-          type="button"
-          aria-label="Profil megnyitása"
-          onClick={onProfile}
-        >
-          <UserIcon />
-        </button>
-      ) : (
-        <span className="header-spacer" aria-hidden="true" />
-      )}
+        {onProfile ? (
+          <button
+            className="icon-button app-header__profile-button"
+            type="button"
+            aria-label="Profil megnyitása"
+            onClick={onProfile}
+          >
+            <UserIcon />
+          </button>
+        ) : null}
+      </div>
     </header>
   )
 }

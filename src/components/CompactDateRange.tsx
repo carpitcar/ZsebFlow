@@ -1,5 +1,3 @@
-import { formatShortDate } from '../lib/date'
-
 type CompactDateRangeProps = {
   dateFromInput: string
   dateToInput: string
@@ -9,7 +7,7 @@ type CompactDateRangeProps = {
 
 function CalendarIcon() {
   return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18">
+    <svg aria-hidden="true" viewBox="0 0 24 24" width="28" height="28">
       <path
         d="M7 3v3M17 3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"
         fill="none"
@@ -54,7 +52,6 @@ export function CompactDateRange({
         htmlFor="dateFromMobile"
       >
         <CalendarIcon />
-        <span>{formatShortDate(dateFromInput)}</span>
         <input
           id="dateFromMobile"
           type="date"
@@ -68,7 +65,6 @@ export function CompactDateRange({
         htmlFor="dateToMobile"
       >
         <CalendarIcon />
-        <span>{formatShortDate(dateToInput)}</span>
         <input
           id="dateToMobile"
           type="date"
