@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="hu" data-theme="system" data-accent="green">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ZsebFlow</title>
+    <script>
+      ;(() => {
+        const themes = ['light', 'dark', 'system']
+        const accents = ['green', 'blue', 'purple', 'orange', 'teal']
+        let theme = 'system'
+        let accent = 'green'
+
+        try {
+          theme = localStorage.getItem('zsebflow-theme')
+          accent = localStorage.getItem('zsebflow-accent')
+        } catch {
+          theme = 'system'
+          accent = 'green'
+        }
+
+        document.documentElement.dataset.theme = themes.includes(theme)
+          ? theme
+          : 'system'
+        document.documentElement.dataset.accent = accents.includes(accent)
+          ? accent
+          : 'green'
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
