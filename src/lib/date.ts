@@ -60,5 +60,13 @@ export const formatCompactDate = (dateValue: string) =>
     day: 'numeric',
   }).format(new Date(`${dateValue}T00:00:00`))
 
+export const formatShortDate = (dateValue: string) =>
+  dateValue
+    ? new Intl.DateTimeFormat('hu-HU', {
+        month: 'short',
+        day: 'numeric',
+      }).format(new Date(`${dateValue}T00:00:00`))
+    : 'Dátum'
+
 export const formatPeriodLabel = (dateFrom: string, dateTo: string) =>
   `${formatCompactDate(dateFrom)} – ${formatCompactDate(dateTo)}`

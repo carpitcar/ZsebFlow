@@ -1,6 +1,7 @@
 import { formatHuf, toNumber } from '../lib/currency'
 import { formatHungarianDate, formatPeriodLabel } from '../lib/date'
 import type { Transaction } from '../types/finance'
+import { CompactDateRange } from './CompactDateRange'
 
 type TransactionListProps = {
   title: string
@@ -65,24 +66,12 @@ export function TransactionList({
       </div>
 
       <div className="filter-panel">
-        <label htmlFor="dateFrom">
-          Tól
-          <input
-            id="dateFrom"
-            type="date"
-            value={dateFromInput}
-            onChange={(event) => onDateFromChange(event.target.value)}
-          />
-        </label>
-        <label htmlFor="dateTo">
-          Ig
-          <input
-            id="dateTo"
-            type="date"
-            value={dateToInput}
-            onChange={(event) => onDateToChange(event.target.value)}
-          />
-        </label>
+        <CompactDateRange
+          dateFromInput={dateFromInput}
+          dateToInput={dateToInput}
+          onDateFromChange={onDateFromChange}
+          onDateToChange={onDateToChange}
+        />
         <button
           className="secondary-button compact-button"
           type="button"

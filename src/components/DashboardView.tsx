@@ -16,6 +16,7 @@ import type {
   Transaction,
   TransactionTypeFilter,
 } from '../types/finance'
+import { AppHeader } from './AppHeader'
 import { TransactionDetails } from './TransactionDetails'
 import { TransactionEditForm } from './TransactionEditForm'
 import { TransactionForm } from './TransactionForm'
@@ -389,19 +390,7 @@ export function DashboardView({
     return (
       <main className="app-shell page-shell">
         <section className="dashboard-panel">
-          <div className="panel-header">
-            <div>
-              <p className="eyebrow">ZsebFlow</p>
-              <h1>ZsebFlow</h1>
-            </div>
-            <button
-              className="secondary-button compact-button"
-              type="button"
-              onClick={onOpenProfile}
-            >
-              Profil
-            </button>
-          </div>
+          <AppHeader onProfile={onOpenProfile} />
           {message ? (
             <p className={`message ${message.type}`} role="status">
               {message.text}
@@ -426,22 +415,10 @@ export function DashboardView({
   return (
     <main className="app-shell page-shell">
       <section className="dashboard-panel finance-dashboard">
-        <div className="panel-header">
-          <div>
-            <p className="eyebrow">ZsebFlow</p>
-            <h1>Házipénztár</h1>
-            <p className="subtle-text">
-              {displayName} · {displayEmail}
-            </p>
-          </div>
-          <button
-            className="secondary-button compact-button"
-            type="button"
-            onClick={onOpenProfile}
-          >
-            Profil
-          </button>
-        </div>
+        <AppHeader
+          subtitle={`${displayName} · ${displayEmail}`}
+          onProfile={onOpenProfile}
+        />
 
         <div className="dashboard-actions">
           <div className="month-selector" aria-label="Kiválasztott hónap">

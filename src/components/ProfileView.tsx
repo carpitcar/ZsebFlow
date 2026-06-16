@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 import type { AccentOption, ThemeOption } from '../types/appearance'
+import { AppHeader } from './AppHeader'
 import { CategoryManager } from './CategoryManager'
 
 type Option<TValue extends string> = {
@@ -108,15 +109,7 @@ export function ProfileView({
   return (
     <main className="app-shell page-shell">
       <section className="settings-panel">
-        <div className="panel-header">
-          <div>
-            <p className="eyebrow">Profil</p>
-            <h1>Beállítások</h1>
-          </div>
-          <button className="secondary-button compact-button" type="button" onClick={onBack}>
-            Vissza
-          </button>
-        </div>
+        <AppHeader subtitle="Beállítások" onBack={onBack} onBrandClick={onBack} />
 
         <div className="profile-summary">
           <div>
