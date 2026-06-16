@@ -126,7 +126,7 @@ export function TransactionList({
             const description =
               transaction.merchant_name?.trim() ||
               transaction.note?.trim() ||
-              'Nincs megadva partner vagy megjegyzés'
+              ''
 
             return (
               <button
@@ -148,8 +148,8 @@ export function TransactionList({
                     {category?.name || 'Kategória nélkül'}
                   </span>
                   <span className="transaction-meta">
-                    {formatHungarianDate(transaction.transaction_date)} ·{' '}
-                    {description}
+                    {formatHungarianDate(transaction.transaction_date)}
+                    {description ? ` · ${description}` : ''}
                   </span>
                 </span>
                 <span className="transaction-amount">

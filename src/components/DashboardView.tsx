@@ -446,19 +446,27 @@ export function DashboardView({
         <div className="dashboard-actions">
           <div className="month-selector" aria-label="Kiválasztott hónap">
             <button
-              className="secondary-button compact-button"
+              className="secondary-button compact-button month-nav-button"
               type="button"
+              aria-label="Előző hónap"
               onClick={() => handleMonthChange(-1)}
             >
-              Előző hónap
+              <span className="desktop-label">Előző hónap</span>
+              <span className="mobile-label" aria-hidden="true">
+                ‹
+              </span>
             </button>
             <strong>{periodHeading}</strong>
             <button
-              className="secondary-button compact-button"
+              className="secondary-button compact-button month-nav-button"
               type="button"
+              aria-label="Következő hónap"
               onClick={() => handleMonthChange(1)}
             >
-              Következő hónap
+              <span className="desktop-label">Következő hónap</span>
+              <span className="mobile-label" aria-hidden="true">
+                ›
+              </span>
             </button>
           </div>
           <button
@@ -466,7 +474,10 @@ export function DashboardView({
             type="button"
             onClick={() => setIsFormOpen(true)}
           >
-            Új tranzakció
+            <span className="desktop-label">Új tranzakció</span>
+            <span className="mobile-label" aria-hidden="true">
+              + Új
+            </span>
           </button>
         </div>
 
