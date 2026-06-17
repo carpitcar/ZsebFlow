@@ -30,7 +30,7 @@ export function RecentTransactionList({
       ) : null}
 
       {transactions.length === 0 ? (
-        <p className="empty-state">Még nincs rögzített tranzakció.</p>
+        <p className="empty-state">Ebben az időszakban még nincs rögzített tétel.</p>
       ) : (
         <div className="recent-transaction-list">
           {transactions.map((transaction) => {
@@ -38,9 +38,7 @@ export function RecentTransactionList({
             const amount = toNumber(transaction.amount)
             const isIncome = transaction.type === 'income'
             const description =
-              transaction.merchant_name?.trim() ||
-              transaction.note?.trim() ||
-              'Nincs megjegyzés'
+              transaction.merchant_name?.trim() || transaction.note?.trim() || ''
 
             return (
               <button
@@ -56,7 +54,7 @@ export function RecentTransactionList({
                 </span>
                 <span className="recent-transaction-main">
                   <strong>{category?.name || 'Kategória nélkül'}</strong>
-                  <span>{description}</span>
+                  {description ? <span>{description}</span> : null}
                 </span>
                 <span className="recent-transaction-side">
                   <strong>

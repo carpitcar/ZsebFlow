@@ -308,6 +308,7 @@ function App() {
           activeItem="profile"
           onHome={() => setView('dashboard')}
           onTransactions={() => setView('dashboard')}
+          onAdd={() => setView('dashboard')}
           onReports={() => setView('dashboard')}
           onProfile={() => setView('profile')}
         />
@@ -319,8 +320,6 @@ function App() {
     return (
       <DashboardView
         userId={session.user.id}
-        displayName={displayName}
-        displayEmail={displayEmail}
         onOpenProfile={() => setView('profile')}
         onLogout={handleLogout}
         isLoggingOut={isSubmitting}

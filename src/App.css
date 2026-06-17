@@ -326,218 +326,45 @@ button:focus-visible {
 .home-dashboard {
   width: 100%;
   display: grid;
-  gap: 14px;
+  gap: 12px;
+  min-height: calc(100svh - 132px);
 }
 
-.home-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 4px 2px 2px;
-}
-
-.home-header__copy {
-  min-width: 0;
-  display: grid;
-  gap: 5px;
-}
-
-.home-header h1 {
-  font-size: 34px;
-  line-height: 1;
-}
-
-.home-header p {
-  max-width: 100%;
-  color: var(--muted);
-  font-size: 14px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.home-profile-button {
-  width: 44px;
-  height: 44px;
-  flex: 0 0 auto;
-  display: grid;
-  place-items: center;
-  border: 1px solid color-mix(in srgb, var(--border), transparent 28%);
-  border-radius: 15px;
-  background: color-mix(in srgb, var(--surface), transparent 14%);
-  color: var(--text-strong);
-  cursor: pointer;
-  box-shadow: 0 14px 28px var(--shadow);
-}
-
-.period-strip {
+.month-switcher {
   display: grid;
   grid-template-columns: 40px minmax(0, 1fr) 40px;
   gap: 8px;
   align-items: center;
-  min-height: 54px;
-  border: 1px solid color-mix(in srgb, var(--border), transparent 22%);
-  border-radius: 18px;
-  background: color-mix(in srgb, var(--surface), transparent 8%);
-  padding: 7px;
-  box-shadow: 0 16px 34px var(--shadow);
+  min-height: 44px;
 }
 
-.period-strip div {
-  min-width: 0;
-  display: grid;
-  gap: 1px;
-  text-align: center;
-}
-
-.period-strip span,
-.summary-card__topline,
-.summary-card__balance span,
-.summary-card__breakdown span,
-.home-section-heading span,
-.home-section-heading small {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 750;
-}
-
-.period-strip strong {
-  color: var(--text-strong);
-  font-size: 15px;
-  line-height: 1.2;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-transform: capitalize;
-  white-space: nowrap;
-}
-
-.period-arrow {
+.month-switcher button {
   width: 40px;
   height: 40px;
-  border: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--border), transparent 20%);
   border-radius: 14px;
-  background: var(--control-bg);
+  background: color-mix(in srgb, var(--surface), transparent 8%);
   color: var(--text-strong);
   cursor: pointer;
-  font-size: 26px;
-  font-weight: 700;
+  font: inherit;
+  font-size: 25px;
+  font-weight: 800;
   line-height: 1;
 }
 
-.financial-summary-card {
-  position: relative;
-  overflow: hidden;
-  display: grid;
-  gap: 18px;
-  border: 1px solid color-mix(in srgb, var(--accent), transparent 54%);
-  border-radius: 28px;
-  background:
-    linear-gradient(145deg, color-mix(in srgb, var(--accent), #111827 74%), transparent 116%),
-    var(--surface);
-  color: #e5edf8;
-  box-shadow: 0 24px 56px var(--shadow);
-  padding: 20px;
-}
-
-.financial-summary-card::before {
-  content: '';
-  position: absolute;
-  width: 170px;
-  height: 170px;
-  right: -82px;
-  top: -76px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.13);
-}
-
-.summary-card__topline,
-.summary-card__balance,
-.summary-card__breakdown {
-  position: relative;
-}
-
-.financial-summary-card .summary-card__topline,
-.financial-summary-card .summary-card__balance span,
-.financial-summary-card .summary-card__breakdown span {
-  color: rgba(226, 232, 240, 0.78);
-}
-
-.summary-card__topline {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.summary-card__topline span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.summary-card__balance {
-  display: grid;
-  gap: 5px;
-}
-
-.summary-card__balance strong {
-  color: #ffffff;
-  font-size: 34px;
-  line-height: 1.05;
-  overflow-wrap: anywhere;
-}
-
-.summary-card__breakdown {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.summary-card__breakdown button,
-.summary-card__breakdown .net {
+.month-switcher strong {
   min-width: 0;
-  display: grid;
-  gap: 5px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--text);
-  font: inherit;
-  padding: 11px 10px;
-  text-align: left;
-}
-
-.summary-card__breakdown button {
-  cursor: pointer;
-}
-
-.summary-card__breakdown button.active {
-  border-color: rgba(255, 255, 255, 0.42);
-  background: rgba(255, 255, 255, 0.16);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
-}
-
-.summary-card__breakdown strong {
-  color: #f8fafc;
-  font-size: 14px;
-  line-height: 1.15;
-  overflow-wrap: anywhere;
-}
-
-.summary-card__breakdown .income strong {
-  color: #bbf7d0;
-}
-
-.summary-card__breakdown .expense strong {
-  color: #fecaca;
-}
-
-.summary-card__breakdown .net.positive strong {
-  color: #d9f99d;
-}
-
-.summary-card__breakdown .net.negative strong {
-  color: #fecaca;
+  color: var(--text-strong);
+  font-size: 16px;
+  font-weight: 850;
+  line-height: 1.2;
+  overflow: hidden;
+  text-align: center;
+  text-overflow: ellipsis;
+  text-transform: capitalize;
+  white-space: nowrap;
 }
 
 .recent-transaction-row.income .recent-transaction-side strong {
@@ -548,33 +375,13 @@ button:focus-visible {
   color: var(--danger-text);
 }
 
-.home-primary-actions {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 10px;
-}
-
-.home-primary-actions .primary-button,
-.home-primary-actions .secondary-button {
-  min-height: 46px;
-  border-radius: 16px;
-}
-
-.home-primary-actions .secondary-button {
-  width: auto;
-  white-space: nowrap;
-}
-
-.home-filter-card,
 .recent-transactions-card {
   display: grid;
-  gap: 14px;
-  border: 1px solid color-mix(in srgb, var(--border), transparent 20%);
-  border-radius: 24px;
-  background: color-mix(in srgb, var(--surface), transparent 7%);
-  box-shadow: 0 18px 42px var(--shadow);
-  padding: 16px;
-  scroll-margin-top: 16px;
+  align-content: start;
+  gap: 10px;
+  min-height: 0;
+  padding-top: 2px;
+  scroll-margin-top: 12px;
 }
 
 .home-section-heading {
@@ -593,26 +400,9 @@ button:focus-visible {
   font-size: 18px;
 }
 
-.home-filter-card .desktop-date-field {
-  min-width: 0;
-}
-
-.home-filter-card .desktop-date-field input {
-  border-radius: 14px;
-  background: var(--control-bg);
-}
-
-.home-filter-card {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.home-filter-card .home-section-heading {
-  grid-column: 1 / -1;
-}
-
 .recent-transaction-list {
   display: grid;
-  gap: 8px;
+  gap: 7px;
 }
 
 .recent-transaction-row {
@@ -622,9 +412,9 @@ button:focus-visible {
   grid-template-columns: 42px minmax(0, 1fr) auto;
   gap: 10px;
   align-items: center;
-  border: 0;
-  border-radius: 18px;
-  background: var(--surface-strong);
+  border: 1px solid color-mix(in srgb, var(--border), transparent 28%);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface), transparent 7%);
   color: var(--text);
   cursor: pointer;
   font: inherit;
@@ -700,7 +490,7 @@ button:focus-visible {
   z-index: 9;
   width: min(calc(100% - 24px), 430px);
   display: none;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr)) 56px repeat(2, minmax(0, 1fr));
   gap: 4px;
   border: 1px solid color-mix(in srgb, var(--border), transparent 20%);
   border-radius: 24px;
@@ -725,6 +515,24 @@ button:focus-visible {
   font-size: 11px;
   font-weight: 800;
   padding: 6px 4px;
+}
+
+.mobile-bottom-nav .mobile-bottom-nav__add {
+  width: 56px;
+  min-height: 56px;
+  align-self: center;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #ffffff;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 16px 30px var(--focus);
+  transform: translateY(-18px);
+}
+
+.mobile-bottom-nav .mobile-bottom-nav__add:hover {
+  background: var(--accent-hover);
 }
 
 .mobile-bottom-nav button.active {
@@ -1354,98 +1162,23 @@ button.metric-card {
   }
 
   .home-dashboard {
+    min-height: calc(100svh - 116px);
     gap: 12px;
   }
 
-  .home-header {
-    padding-top: 2px;
-  }
-
-  .home-header h1 {
-    font-size: 30px;
-  }
-
-  .home-header p {
-    font-size: 13px;
-  }
-
-  .home-profile-button {
-    width: 42px;
-    height: 42px;
-    border-radius: 14px;
-  }
-
-  .period-strip {
+  .month-switcher {
     grid-template-columns: 38px minmax(0, 1fr) 38px;
-    min-height: 50px;
-    border-radius: 17px;
-    padding: 6px;
+    min-height: 38px;
   }
 
-  .period-arrow {
+  .month-switcher button {
     width: 38px;
     height: 38px;
     border-radius: 13px;
   }
 
-  .period-strip strong {
-    font-size: 14px;
-  }
-
-  .financial-summary-card {
-    gap: 15px;
-    border-radius: 24px;
-    padding: 17px;
-  }
-
-  .summary-card__balance strong {
-    font-size: 30px;
-  }
-
-  .summary-card__breakdown {
-    gap: 7px;
-  }
-
-  .summary-card__breakdown button,
-  .summary-card__breakdown .net {
-    border-radius: 15px;
-    padding: 9px 8px;
-  }
-
-  .summary-card__breakdown strong {
-    font-size: 13px;
-  }
-
-  .home-primary-actions {
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 8px;
-  }
-
-  .home-primary-actions .primary-button,
-  .home-primary-actions .secondary-button {
-    min-height: 43px;
-    border-radius: 14px;
-    padding: 8px 12px;
-  }
-
-  .home-filter-card,
-  .recent-transactions-card {
-    gap: 11px;
-    border-radius: 21px;
-    padding: 13px;
-  }
-
-  .home-filter-card {
-    grid-template-columns: 52px 52px;
-    justify-content: start;
-  }
-
-  .home-filter-card .home-section-heading {
-    width: 100%;
-  }
-
-  .home-section-heading h2 {
-    font-size: 16px;
+  .month-switcher strong {
+    font-size: 15px;
   }
 
   .recent-transaction-list {
@@ -1478,6 +1211,12 @@ button.metric-card {
 
   .mobile-bottom-nav {
     display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) 54px repeat(2, minmax(0, 1fr));
+  }
+
+  .mobile-bottom-nav .mobile-bottom-nav__add {
+    width: 54px;
+    min-height: 54px;
   }
 
   h1 {
@@ -1982,15 +1721,12 @@ button.metric-card {
   .metric-grid,
   .filter-panel,
   .dashboard-actions,
-  .home-primary-actions,
-  .summary-card__breakdown,
   .category-form,
   .category-edit-grid {
     grid-template-columns: 1fr;
   }
 
   .new-transaction-button,
-  .home-primary-actions .secondary-button,
   .filter-panel .compact-button {
     width: 100%;
   }

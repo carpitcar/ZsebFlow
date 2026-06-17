@@ -9,6 +9,7 @@ type MobileBottomNavProps = {
   activeItem: MobileBottomNavItem['id']
   onHome: () => void
   onTransactions: () => void
+  onAdd: () => void
   onReports: () => void
   onProfile: () => void
 }
@@ -53,6 +54,7 @@ export function MobileBottomNav({
   activeItem,
   onHome,
   onTransactions,
+  onAdd,
   onReports,
   onProfile,
 }: MobileBottomNavProps) {
@@ -65,7 +67,27 @@ export function MobileBottomNav({
 
   return (
     <nav className="mobile-bottom-nav" aria-label="Elsődleges navigáció">
-      {items.map((item) => (
+      {items.slice(0, 2).map((item) => (
+        <button
+          key={item.id}
+          className={activeItem === item.id ? 'active' : ''}
+          type="button"
+          aria-current={activeItem === item.id ? 'page' : undefined}
+          onClick={item.onClick}
+        >
+          <NavIcon icon={item.icon} />
+          <span>{item.label}</span>
+        </button>
+      ))}
+      <button
+        className="mobile-bottom-nav__add"
+        type="button"
+        aria-label="Új tétel"
+        onClick={onAdd}
+      >
+        +
+      </button>
+      {items.slice(2).map((item) => (
         <button
           key={item.id}
           className={activeItem === item.id ? 'active' : ''}
