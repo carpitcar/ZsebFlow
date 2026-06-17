@@ -1151,103 +1151,325 @@ button.metric-card {
   opacity: 0.72;
 }
 
-.profile-summary {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+.profile-settings-panel {
+  width: min(100%, 620px);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  gap: 14px;
 }
 
-.profile-summary div {
+.settings-topbar {
   display: grid;
-  gap: 6px;
-  background: var(--surface-strong);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 16px;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.settings-back-button,
+.settings-brand-button,
+.profile-edit-button,
+.settings-row {
+  font: inherit;
+}
+
+.settings-back-button {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--border), transparent 20%);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface), transparent 8%);
+  color: var(--text-strong);
+  cursor: pointer;
+  padding: 0;
+}
+
+.settings-back-button svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.2;
+}
+
+.settings-brand-button {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
   text-align: left;
 }
 
-.profile-summary span {
+.settings-brand-button strong {
+  color: #ffffff;
+  font-size: 24px;
+  font-weight: 850;
+  line-height: 1.05;
+}
+
+.settings-brand-button span {
   color: var(--muted);
   font-size: 13px;
   font-weight: 700;
 }
 
-.profile-summary strong {
-  color: var(--text-strong);
-  overflow-wrap: anywhere;
+.profile-card,
+.profile-edit-form,
+.settings-row-group {
+  border: 1px solid color-mix(in srgb, var(--border), transparent 22%);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--surface), transparent 7%);
 }
 
-.settings-entry-button {
-  width: 100%;
-  min-height: 56px;
-  display: flex;
+.profile-card {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  gap: 10px;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  padding: 11px;
+}
+
+.profile-avatar {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--text-strong);
+}
+
+.profile-avatar svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 2;
+}
+
+.profile-card-copy {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.profile-card-copy strong,
+.profile-card-copy small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-card-copy strong {
+  color: var(--text-strong);
+  font-size: 15px;
+}
+
+.profile-card-copy small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.profile-edit-button {
+  min-height: 34px;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface-strong);
+  border-radius: 12px;
+  background: var(--control-bg);
   color: var(--text-strong);
   cursor: pointer;
-  font: inherit;
-  padding: 12px 14px;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 7px 10px;
+}
+
+.profile-edit-form {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.profile-edit-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+}
+
+.profile-edit-actions .primary-button,
+.profile-edit-actions .secondary-button {
+  min-height: 40px;
+  border-radius: 12px;
+}
+
+.compact-settings-section {
+  display: grid;
+  gap: 7px;
+}
+
+.compact-settings-section h2 {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+  padding: 0 2px;
+  text-transform: uppercase;
+}
+
+.settings-row-group {
+  overflow: hidden;
+}
+
+.settings-row {
+  width: 100%;
+  min-height: 52px;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto 18px;
+  gap: 10px;
+  align-items: center;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border), transparent 35%);
+  background: transparent;
+  color: var(--text);
+  cursor: default;
+  padding: 9px 11px;
   text-align: left;
 }
 
-.settings-entry-button span:first-child {
+button.settings-row {
+  cursor: pointer;
+}
+
+.settings-row:last-child {
+  border-bottom: 0;
+}
+
+.settings-row:disabled {
+  cursor: not-allowed;
+  opacity: 0.68;
+}
+
+.settings-row-icon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--control-bg);
+  color: var(--text-strong);
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.settings-row-copy {
   min-width: 0;
   display: grid;
-  gap: 2px;
+  gap: 1px;
 }
 
-.settings-entry-button small {
-  color: var(--muted);
-  font-size: 13px;
+.settings-row-copy strong,
+.settings-row-copy small,
+.settings-row-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.choice-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.choice,
-.swatch {
-  min-height: 44px;
-  border: 1px solid var(--border-strong);
-  border-radius: 6px;
-  background: var(--surface);
+.settings-row-copy strong {
   color: var(--text-strong);
+  font-size: 14px;
+}
+
+.settings-row-copy small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.settings-row-value {
+  max-width: 120px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+  text-align: right;
+}
+
+.settings-row-chevron {
+  color: var(--muted);
+  font-size: 22px;
+  line-height: 1;
+}
+
+.settings-row.danger .settings-row-icon,
+.settings-row.danger .settings-row-copy strong {
+  color: var(--danger-text);
+}
+
+.compact-choice-control,
+.compact-accent-grid {
+  display: grid;
+  border-bottom: 1px solid color-mix(in srgb, var(--border), transparent 35%);
+  padding: 10px 11px 12px 55px;
+}
+
+.compact-choice-control {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.compact-choice-control button {
+  min-height: 34px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: transparent;
+  color: var(--muted);
   cursor: pointer;
   font: inherit;
-  font-weight: 650;
+  font-size: 12px;
+  font-weight: 800;
 }
 
-.choice.active,
-.swatch.active {
+.compact-choice-control button.active {
   border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--text-strong);
+}
+
+.compact-accent-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.compact-accent-grid button {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+}
+
+.compact-accent-grid button.active {
+  border-color: var(--text-strong);
   box-shadow: 0 0 0 3px var(--focus);
 }
 
-.swatch-grid {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.swatch {
-  display: grid;
-  place-items: center;
-  gap: 8px;
-  padding: 10px 8px;
-}
-
-.swatch span {
-  width: 24px;
-  height: 24px;
+.compact-accent-grid span {
+  width: 20px;
+  height: 20px;
   border-radius: 999px;
-  border: 2px solid rgba(255, 255, 255, 0.7);
   box-shadow: 0 0 0 1px var(--border-strong);
 }
 
@@ -1441,20 +1663,6 @@ button.metric-card {
     width: auto;
     min-height: 36px;
     padding: 7px 10px;
-  }
-
-  .profile-summary {
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
-
-  .profile-summary div {
-    padding: 11px 12px;
-  }
-
-  .profile-summary strong {
-    overflow-wrap: anywhere;
-    word-break: break-word;
   }
 
   .compact-button {
@@ -1692,43 +1900,6 @@ button.metric-card {
 
   .category-list {
     gap: 8px;
-  }
-
-  .settings-entry-button {
-    min-height: 48px;
-    padding: 10px 12px;
-  }
-
-  .settings-entry-button small {
-    font-size: 12px;
-  }
-
-  .choice-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
-  }
-
-  .swatch-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
-  }
-
-  .choice,
-  .swatch {
-    min-height: 40px;
-    font-size: 13px;
-    padding: 8px;
-  }
-
-  .swatch {
-    grid-template-columns: 1fr;
-    justify-items: center;
-    gap: 5px;
-  }
-
-  .swatch span {
-    width: 20px;
-    height: 20px;
   }
 
   .category-form,
