@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { formatHuf, toNumber } from '../lib/currency'
 import { formatActivePeriodLabel, formatHungarianDate } from '../lib/date'
 import { normalizeCategoryColor } from '../lib/categoryColor'
@@ -90,6 +91,7 @@ export function TransactionList({
               transaction.merchant_name?.trim() ||
               transaction.note?.trim() ||
               ''
+            const categoryColor = normalizeCategoryColor(category?.color)
 
             return (
               <button
@@ -98,6 +100,11 @@ export function TransactionList({
                   isIncome ? 'income' : 'expense'
                 }`}
                 type="button"
+                style={
+                  {
+                    '--category-color': categoryColor,
+                  } as CSSProperties
+                }
                 onClick={() => onSelect(transaction)}
               >
                 <span className="transaction-kind" aria-hidden="true">
@@ -109,9 +116,7 @@ export function TransactionList({
                       className="category-icon"
                       aria-hidden="true"
                       style={{
-                        backgroundColor: normalizeCategoryColor(
-                          category?.color,
-                        ),
+                        backgroundColor: categoryColor,
                       }}
                     >
                       {category?.icon || '•'}

@@ -422,7 +422,8 @@ button:focus-visible {
   grid-template-columns: 42px minmax(0, 1fr) auto;
   gap: 10px;
   align-items: center;
-  border: 1px solid color-mix(in srgb, var(--border), transparent 28%);
+  border: 1px solid
+    color-mix(in srgb, var(--category-color, var(--border)) 35%, transparent);
   border-radius: 16px;
   background: color-mix(in srgb, var(--surface), transparent 7%);
   color: var(--text);
@@ -433,7 +434,20 @@ button:focus-visible {
 }
 
 .recent-transaction-row:hover {
+  border-color: color-mix(
+    in srgb,
+    var(--category-color, var(--border)) 52%,
+    transparent
+  );
   background: var(--control-bg);
+}
+
+.recent-transaction-row:focus-visible {
+  border-color: color-mix(
+    in srgb,
+    var(--category-color, var(--border)) 58%,
+    transparent
+  );
 }
 
 .recent-transaction-icon {
@@ -782,7 +796,8 @@ button.metric-card {
   gap: 12px;
   align-items: center;
   width: 100%;
-  border: 1px solid var(--border);
+  border: 1px solid
+    color-mix(in srgb, var(--category-color, var(--border)) 35%, transparent);
   border-radius: 8px;
   background: var(--surface);
   color: var(--text);
@@ -792,7 +807,20 @@ button.metric-card {
 }
 
 .transaction-item:hover {
+  border-color: color-mix(
+    in srgb,
+    var(--category-color, var(--border)) 52%,
+    transparent
+  );
   background: var(--surface-strong);
+}
+
+.transaction-item:focus-visible {
+  border-color: color-mix(
+    in srgb,
+    var(--category-color, var(--border)) 58%,
+    transparent
+  );
 }
 
 .transaction-kind {
