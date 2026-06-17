@@ -48,30 +48,30 @@ export function TransactionDetails({
         </div>
 
         <dl className="details-list">
-          <div>
+          <div className="transaction-detail-row">
             <dt>Típus</dt>
             <dd>{isIncome ? 'Bevétel' : 'Kiadás'}</dd>
           </div>
-          <div>
+          <div className="transaction-detail-row">
             <dt>Összeg</dt>
-            <dd>
+            <dd className={isIncome ? 'income-value' : 'expense-value'}>
               {isIncome ? '+' : '-'}
               {formatHuf(toNumber(transaction.amount))}
             </dd>
           </div>
-          <div>
+          <div className="transaction-detail-row">
             <dt>Kategória</dt>
             <dd>{transaction.categories?.name || 'Kategória nélkül'}</dd>
           </div>
-          <div>
+          <div className="transaction-detail-row">
             <dt>Dátum</dt>
             <dd>{formatHungarianDate(transaction.transaction_date)}</dd>
           </div>
-          <div>
+          <div className="transaction-detail-row">
             <dt>Partner vagy üzlet</dt>
             <dd>{transaction.merchant_name || 'Nincs megadva'}</dd>
           </div>
-          <div>
+          <div className="transaction-detail-row">
             <dt>Megjegyzés</dt>
             <dd>{transaction.note || 'Nincs megadva'}</dd>
           </div>

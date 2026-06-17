@@ -661,12 +661,13 @@ button.metric-card {
 
 .metric-card.income strong,
 .transaction-item.income .transaction-amount,
-.details-list dd:nth-child(2) {
+.details-list dd.income-value {
   color: var(--success-text);
 }
 
 .metric-card.expense strong,
-.transaction-item.expense .transaction-amount {
+.transaction-item.expense .transaction-amount,
+.details-list dd.expense-value {
   color: var(--danger-text);
 }
 
@@ -871,6 +872,14 @@ button.metric-card {
 .transaction-form {
   display: grid;
   gap: 16px;
+  min-width: 0;
+}
+
+.transaction-form label,
+.transaction-form input,
+.transaction-form select,
+.transaction-form textarea {
+  min-width: 0;
 }
 
 .type-switch {
@@ -918,20 +927,26 @@ button.metric-card {
 .details-list div {
   display: grid;
   grid-template-columns: 150px minmax(0, 1fr);
-  gap: 12px;
+  align-items: center;
+  gap: 16px;
   border-bottom: 1px solid var(--border);
+  min-height: 38px;
   padding-bottom: 10px;
 }
 
 .details-list dt {
   color: var(--muted);
   font-weight: 750;
+  min-width: 0;
+  text-align: left;
 }
 
 .details-list dd {
+  min-width: 0;
   margin: 0;
   color: var(--text-strong);
   overflow-wrap: anywhere;
+  text-align: right;
 }
 
 .category-manager {
@@ -1674,8 +1689,9 @@ button.metric-card {
   }
 
   .details-list div {
-    grid-template-columns: 1fr;
-    gap: 3px;
+    grid-template-columns: minmax(95px, auto) minmax(0, 1fr);
+    gap: 8px;
+    min-height: 34px;
     padding-bottom: 8px;
   }
 
