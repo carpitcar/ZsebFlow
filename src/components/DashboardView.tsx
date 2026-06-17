@@ -28,6 +28,7 @@ type Message = {
 type DashboardViewProps = {
   userId: string
   newTransactionRequest: number
+  onOpenReports: () => void
   onOpenProfile: () => void
   onLogout: () => Promise<void>
   isLoggingOut: boolean
@@ -42,6 +43,7 @@ const selectDefaultAccount = (accounts: CashAccount[]) =>
 export function DashboardView({
   userId,
   newTransactionRequest,
+  onOpenReports,
   onOpenProfile,
   onLogout,
   isLoggingOut,
@@ -100,14 +102,20 @@ export function DashboardView({
     )
   }, [activeRangeTransactions])
 
+  const effectiveActiveCategoryId =
+    activeCategoryId &&
+    activeCategoryFilters.some((category) => category.id === activeCategoryId)
+      ? activeCategoryId
+      : null
+
   const filteredTransactions = useMemo(
     () =>
-      activeCategoryId
+      effectiveActiveCategoryId
         ? activeRangeTransactions.filter(
-            (transaction) => transaction.category_id === activeCategoryId,
+            (transaction) => transaction.category_id === effectiveActiveCategoryId,
           )
         : activeRangeTransactions,
-    [activeCategoryId, activeRangeTransactions],
+    [effectiveActiveCategoryId, activeRangeTransactions],
   )
 
   const loadDashboard = useCallback(async () => {
@@ -209,15 +217,6 @@ export function DashboardView({
     }
   }, [account, newTransactionRequest])
 
-  useEffect(() => {
-    if (
-      activeCategoryId &&
-      !activeCategoryFilters.some((category) => category.id === activeCategoryId)
-    ) {
-      setActiveCategoryId(null)
-    }
-  }, [activeCategoryFilters, activeCategoryId])
-
   const handleTransactionSaved = async () => {
     await loadDashboard()
     setMessage({
@@ -274,6 +273,7 @@ export function DashboardView({
 
     setDateFrom(nextRange.firstDay)
     setDateTo(nextRange.lastDay)
+    setActiveCategoryId(null)
     setListError(null)
   }
 
@@ -333,7 +333,7 @@ export function DashboardView({
         <HomeDashboard
           activePeriodHeading={activePeriodHeading}
           categoryFilters={activeCategoryFilters}
-          activeCategoryId={activeCategoryId}
+          activeCategoryId={effectiveActiveCategoryId}
           transactions={filteredTransactions}
           listError={listError}
           onMonthChange={handleMonthChange}
@@ -364,7 +364,7 @@ export function DashboardView({
         onAdd={() => setIsFormOpen(true)}
         onReports={() => {
           setActiveNavItem('reports')
-          scrollToHomeSection()
+          onOpenReports()
         }}
         onProfile={onOpenProfile}
       />

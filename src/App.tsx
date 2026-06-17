@@ -5,12 +5,13 @@ import { DashboardView } from './components/DashboardView'
 import { MobileBottomNav } from './components/MobileBottomNav'
 import { PasswordInput } from './components/PasswordInput'
 import { ProfileView } from './components/ProfileView'
+import { ReportsView } from './components/ReportsView'
 import { useAppearance } from './hooks/useAppearance'
 import { supabase } from './lib/supabase'
 import './App.css'
 
 type AuthMode = 'login' | 'register'
-type AppView = 'dashboard' | 'profile'
+type AppView = 'dashboard' | 'profile' | 'reports'
 type Message = {
   type: 'success' | 'error'
   text: string
@@ -315,10 +316,20 @@ function App() {
           onHome={() => setView('dashboard')}
           onTransactions={() => setView('dashboard')}
           onAdd={requestNewTransaction}
-          onReports={() => setView('dashboard')}
+          onReports={() => setView('reports')}
           onProfile={() => setView('profile')}
         />
       </>
+    )
+  }
+
+  if (session && view === 'reports') {
+    return (
+      <ReportsView
+        userId={session.user.id}
+        onOpenHome={() => setView('dashboard')}
+        onOpenProfile={() => setView('profile')}
+      />
     )
   }
 
@@ -327,6 +338,7 @@ function App() {
       <DashboardView
         userId={session.user.id}
         newTransactionRequest={newTransactionRequest}
+        onOpenReports={() => setView('reports')}
         onOpenProfile={() => setView('profile')}
         onLogout={handleLogout}
         isLoggingOut={isSubmitting}

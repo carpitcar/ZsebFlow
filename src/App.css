@@ -1215,6 +1215,282 @@ button.metric-card {
   gap: 14px;
 }
 
+.reports-panel {
+  width: min(100%, 720px);
+  display: grid;
+  gap: 14px;
+}
+
+.reports-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.reports-header div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.reports-header h1 {
+  color: #ffffff;
+  font-size: 26px;
+  line-height: 1.05;
+}
+
+.reports-header p {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.report-range-card,
+.report-card,
+.report-summary-grid article {
+  border: 1px solid color-mix(in srgb, var(--border), transparent 22%);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface), transparent 7%);
+  box-sizing: border-box;
+}
+
+.report-range-card {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px;
+}
+
+.report-range-card input {
+  border-radius: 12px;
+  background: var(--control-bg);
+}
+
+.report-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.report-summary-grid article {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+}
+
+.report-summary-grid span,
+.report-section-heading span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.report-summary-grid strong {
+  color: var(--text-strong);
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+.report-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.report-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.report-section-heading h2 {
+  font-size: 16px;
+}
+
+.distribution-layout {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+}
+
+.donut-chart {
+  width: 150px;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  position: relative;
+}
+
+.donut-chart::after {
+  content: '';
+  position: absolute;
+  inset: 26px;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+.donut-chart span {
+  position: relative;
+  z-index: 1;
+  color: var(--text-strong);
+  font-size: 13px;
+  font-weight: 850;
+  text-align: center;
+}
+
+.distribution-list {
+  display: grid;
+  gap: 8px;
+}
+
+.distribution-list div {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.distribution-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.distribution-list strong,
+.distribution-list span:last-child {
+  min-width: 0;
+  font-size: 13px;
+}
+
+.distribution-list strong {
+  color: var(--text-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.distribution-list span:last-child {
+  color: var(--muted);
+  text-align: right;
+}
+
+.trend-chart {
+  min-height: 180px;
+  display: flex;
+  gap: 8px;
+  align-items: end;
+  overflow-x: auto;
+  padding-bottom: 3px;
+  scrollbar-width: none;
+}
+
+.trend-chart::-webkit-scrollbar {
+  display: none;
+}
+
+.trend-column {
+  width: 44px;
+  flex: 0 0 44px;
+  display: grid;
+  grid-template-rows: auto 110px auto;
+  gap: 6px;
+  align-items: end;
+}
+
+.trend-column span,
+.trend-column small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trend-column div {
+  width: 100%;
+  height: 110px;
+  display: flex;
+  align-items: end;
+  border-radius: 12px;
+  background: var(--control-bg);
+  overflow: hidden;
+}
+
+.trend-column i {
+  width: 100%;
+  display: block;
+  border-radius: 12px 12px 0 0;
+  background: var(--accent);
+}
+
+.largest-expense-list {
+  display: grid;
+  gap: 8px;
+}
+
+.largest-expense-list button {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid
+    color-mix(in srgb, var(--category-color, var(--border)) 35%, transparent);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface), transparent 7%);
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  padding: 10px;
+  text-align: left;
+}
+
+.largest-expense-list button:hover {
+  border-color: color-mix(
+    in srgb,
+    var(--category-color, var(--border)) 52%,
+    transparent
+  );
+  background: var(--control-bg);
+}
+
+.largest-expense-list button > span:not(.recent-transaction-icon) {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.largest-expense-list strong,
+.largest-expense-list small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.largest-expense-list strong {
+  color: var(--text-strong);
+  font-size: 14px;
+}
+
+.largest-expense-list small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.largest-expense-list b {
+  color: var(--danger-text);
+  font-size: 14px;
+  white-space: nowrap;
+}
+
 .settings-topbar {
   width: 100%;
   max-width: 100%;
@@ -1593,6 +1869,48 @@ button.settings-row {
     max-width: 100%;
     padding: 0;
     gap: 12px;
+  }
+
+  .reports-panel {
+    width: 100%;
+    gap: 12px;
+  }
+
+  .reports-header h1 {
+    font-size: 25px;
+  }
+
+  .report-range-card {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .report-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .report-summary-grid article,
+  .report-card {
+    padding: 12px;
+  }
+
+  .distribution-layout {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+
+  .donut-chart {
+    width: 136px;
+  }
+
+  .distribution-list {
+    width: 100%;
+  }
+
+  .trend-column {
+    width: 40px;
+    flex-basis: 40px;
   }
 
   .home-dashboard {
