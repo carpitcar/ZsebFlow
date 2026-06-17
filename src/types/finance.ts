@@ -15,6 +15,7 @@ export type Category = {
   name: string
   type: TransactionType
   icon: string | null
+  color: string
 }
 
 export type Transaction = {

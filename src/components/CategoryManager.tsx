@@ -1,4 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  defaultCategoryColor,
+  normalizeCategoryColor,
+} from '../lib/categoryColor'
 import { supabase } from '../lib/supabase'
 import type { Category, TransactionType } from '../types/finance'
 
@@ -20,7 +24,55 @@ const categoryTypeLabels: Record<TransactionType, string> = {
   income: 'Bevétel',
 }
 
+const categoryColorOptions = [
+  { label: 'Piros szín', value: '#ef4444' },
+  { label: 'Narancs szín', value: '#f97316' },
+  { label: 'Sárga szín', value: '#eab308' },
+  { label: 'Zöld szín', value: '#22c55e' },
+  { label: 'Türkiz szín', value: '#14b8a6' },
+  { label: 'Kék szín', value: '#3b82f6' },
+  { label: 'Lila szín', value: '#8b5cf6' },
+  { label: 'Rózsaszín szín', value: '#ec4899' },
+  { label: 'Szürke szín', value: defaultCategoryColor },
+]
+
 const normalizeName = (name: string) => name.trim().toLocaleLowerCase('hu-HU')
+
+function CategoryColorPicker({
+  legend,
+  value,
+  onChange,
+  disabled,
+}: {
+  legend: string
+  value: string
+  onChange: (color: string) => void
+  disabled: boolean
+}) {
+  const selectedColor = normalizeCategoryColor(value)
+
+  return (
+    <fieldset className="category-color-picker">
+      <legend>{legend}</legend>
+      <div className="category-color-grid">
+        {categoryColorOptions.map((option) => (
+          <button
+            key={option.value}
+            className={selectedColor === option.value ? 'active' : ''}
+            type="button"
+            aria-label={option.label}
+            aria-pressed={selectedColor === option.value}
+            onClick={() => onChange(option.value)}
+            disabled={disabled}
+            style={{ backgroundColor: option.value }}
+          >
+            {selectedColor === option.value ? '✓' : ''}
+          </button>
+        ))}
+      </div>
+    </fieldset>
+  )
+}
 
 export function CategoryManager({ userId }: CategoryManagerProps) {
   const [categories, setCategories] = useState<CategoryWithCount[]>([])
@@ -29,9 +81,11 @@ export function CategoryManager({ userId }: CategoryManagerProps) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [newName, setNewName] = useState('')
   const [newIcon, setNewIcon] = useState('')
+  const [newColor, setNewColor] = useState(defaultCategoryColor)
   const [newType, setNewType] = useState<TransactionType>('expense')
   const [editName, setEditName] = useState('')
   const [editIcon, setEditIcon] = useState('')
+  const [editColor, setEditColor] = useState(defaultCategoryColor)
   const [message, setMessage] = useState<Message | null>(null)
 
   const loadCategories = useCallback(async () => {
@@ -66,6 +120,7 @@ export function CategoryManager({ userId }: CategoryManagerProps) {
 
         return {
           ...category,
+          color: normalizeCategoryColor(category.color),
           transactionCount: countError ? 0 : count ?? 0,
         }
       }),
@@ -134,6 +189,7 @@ export function CategoryManager({ userId }: CategoryManagerProps) {
       name,
       type: newType,
       icon: icon || null,
+      color: normalizeCategoryColor(newColor),
     })
 
     if (error) {
@@ -147,6 +203,7 @@ export function CategoryManager({ userId }: CategoryManagerProps) {
 
     setNewName('')
     setNewIcon('')
+    setNewColor(defaultCategoryColor)
     await loadCategories()
     setMessage({
       type: 'success',
@@ -159,6 +216,7 @@ export function CategoryManager({ userId }: CategoryManagerProps) {
     setEditingId(category.id)
     setEditName(category.name)
     setEditIcon(category.icon ?? '')
+    setEditColor(normalizeCategoryColor(category.color))
     setMessage(null)
   }
 
@@ -166,6 +224,7 @@ export function CategoryManager({ userId }: CategoryManagerProps) {
     setEditingId(null)
     setEditName('')
     setEditIcon('')
+    setEditColor(defaultCategoryColor)
   }
 
   const handleRename = async (category: CategoryWithCount) => {
@@ -197,6 +256,7 @@ export function CategoryManager({ userId }: CategoryManagerProps) {
       .update({
         name,
         icon: icon || null,
+        color: normalizeCategoryColor(editColor),
       })
       .eq('id', category.id)
       .eq('user_id', userId)
@@ -295,7 +355,7 @@ export function CategoryManager({ userId }: CategoryManagerProps) {
                 {isEditing ? (
                   <div className="category-edit-grid">
                     <label htmlFor={`categoryIcon-${category.id}`}>
-                      Ikon
+                      Ikon vagy emoji
                       <input
                         id={`categoryIcon-${category.id}`}
                         type="text"
@@ -315,6 +375,12 @@ export function CategoryManager({ userId }: CategoryManagerProps) {
                         required
                       />
                     </label>
+                    <CategoryColorPicker
+                      legend="Szín"
+                      value={editColor}
+                      onChange={setEditColor}
+                      disabled={isSaving}
+                    />
                     <div className="category-actions">
                       <button
                         className="primary-button"
@@ -337,7 +403,15 @@ export function CategoryManager({ userId }: CategoryManagerProps) {
                 ) : (
                   <>
                     <div className="category-main">
-                      <span className="category-icon-large" aria-hidden="true">
+                      <span
+                        className="category-icon-large"
+                        aria-hidden="true"
+                        style={{
+                          backgroundColor: normalizeCategoryColor(
+                            category.color,
+                          ),
+                        }}
+                      >
                         {category.icon || '•'}
                       </span>
                       <div>
@@ -410,6 +484,12 @@ export function CategoryManager({ userId }: CategoryManagerProps) {
             disabled={isSaving}
           />
         </label>
+        <CategoryColorPicker
+          legend="Szín"
+          value={newColor}
+          onChange={setNewColor}
+          disabled={isSaving}
+        />
         <label htmlFor="newCategoryType">
           Típus
           <select

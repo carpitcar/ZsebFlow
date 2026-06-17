@@ -1,5 +1,6 @@
 import { formatHuf, toNumber } from '../lib/currency'
 import { formatActivePeriodLabel, formatHungarianDate } from '../lib/date'
+import { normalizeCategoryColor } from '../lib/categoryColor'
 import type { Transaction } from '../types/finance'
 import { CompactDateRange } from './CompactDateRange'
 
@@ -104,7 +105,15 @@ export function TransactionList({
                 </span>
                 <span className="transaction-main">
                   <span className="transaction-title">
-                    <span className="category-icon" aria-hidden="true">
+                    <span
+                      className="category-icon"
+                      aria-hidden="true"
+                      style={{
+                        backgroundColor: normalizeCategoryColor(
+                          category?.color,
+                        ),
+                      }}
+                    >
                       {category?.icon || '•'}
                     </span>
                     {category?.name || 'Kategória nélkül'}

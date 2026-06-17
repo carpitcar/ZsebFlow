@@ -1,5 +1,6 @@
 import { formatHuf, toNumber } from '../lib/currency'
 import { formatHungarianDate } from '../lib/date'
+import { normalizeCategoryColor } from '../lib/categoryColor'
 import type { Transaction } from '../types/finance'
 
 type TransactionDetailsProps = {
@@ -61,7 +62,20 @@ export function TransactionDetails({
           </div>
           <div className="transaction-detail-row">
             <dt>Kategória</dt>
-            <dd>{transaction.categories?.name || 'Kategória nélkül'}</dd>
+            <dd>
+              <span className="detail-category-value">
+                <span
+                  className="detail-category-color"
+                  aria-hidden="true"
+                  style={{
+                    backgroundColor: normalizeCategoryColor(
+                      transaction.categories?.color,
+                    ),
+                  }}
+                />
+                <span>{transaction.categories?.name || 'Kategória nélkül'}</span>
+              </span>
+            </dd>
           </div>
           <div className="transaction-detail-row">
             <dt>Dátum</dt>

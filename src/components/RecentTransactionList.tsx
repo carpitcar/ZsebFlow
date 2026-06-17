@@ -1,5 +1,6 @@
 import { formatHuf, toNumber } from '../lib/currency'
 import { formatHungarianDate } from '../lib/date'
+import { normalizeCategoryColor } from '../lib/categoryColor'
 import type { Transaction } from '../types/finance'
 
 type RecentTransactionListProps = {
@@ -49,7 +50,13 @@ export function RecentTransactionList({
                 type="button"
                 onClick={() => onSelect(transaction)}
               >
-                <span className="recent-transaction-icon" aria-hidden="true">
+                <span
+                  className="recent-transaction-icon"
+                  aria-hidden="true"
+                  style={{
+                    backgroundColor: normalizeCategoryColor(category?.color),
+                  }}
+                >
                   {category?.icon || (isIncome ? '+' : '-')}
                 </span>
                 <span className="recent-transaction-main">
