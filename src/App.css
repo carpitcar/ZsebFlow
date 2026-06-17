@@ -1152,7 +1152,9 @@ button.metric-card {
 }
 
 .profile-settings-panel {
-  width: min(100%, 620px);
+  width: min(100%, 720px);
+  max-width: 720px;
+  box-sizing: border-box;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -1162,6 +1164,9 @@ button.metric-card {
 }
 
 .settings-topbar {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   display: grid;
   grid-template-columns: 42px minmax(0, 1fr);
   gap: 10px;
@@ -1226,8 +1231,11 @@ button.metric-card {
 .profile-card,
 .profile-edit-form,
 .settings-row-group {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   border: 1px solid color-mix(in srgb, var(--border), transparent 22%);
-  border-radius: 18px;
+  border-radius: 16px;
   background: color-mix(in srgb, var(--surface), transparent 7%);
 }
 
@@ -1313,6 +1321,9 @@ button.metric-card {
 }
 
 .compact-settings-section {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   display: grid;
   gap: 7px;
 }
@@ -1331,6 +1342,8 @@ button.metric-card {
 
 .settings-row {
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   min-height: 52px;
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr) auto 18px;
@@ -1395,6 +1408,7 @@ button.settings-row {
 }
 
 .settings-row-value {
+  min-width: 0;
   max-width: 120px;
   color: var(--muted);
   font-size: 12px;
@@ -1518,6 +1532,13 @@ button.settings-row {
 
   .finance-dashboard {
     width: 100%;
+    padding: 0;
+    gap: 12px;
+  }
+
+  .profile-settings-panel {
+    width: 100%;
+    max-width: 100%;
     padding: 0;
     gap: 12px;
   }
