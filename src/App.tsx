@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { DashboardView } from './components/DashboardView'
+import { MobileBottomNav } from './components/MobileBottomNav'
 import { PasswordInput } from './components/PasswordInput'
 import { ProfileView } from './components/ProfileView'
 import { useAppearance } from './hooks/useAppearance'
@@ -286,22 +287,31 @@ function App() {
 
   if (session && view === 'profile') {
     return (
-      <ProfileView
-        key={`${session.user.id}-${displayName}`}
-        userId={session.user.id}
-        email={displayEmail}
-        fullName={displayName}
-        theme={appearance.theme}
-        accent={appearance.accent}
-        themeOptions={appearance.themeOptions}
-        accentOptions={appearance.accentOptions}
-        onThemeChange={appearance.setTheme}
-        onAccentChange={appearance.setAccent}
-        onFullNameSaved={handleFullNameSaved}
-        onBack={() => setView('dashboard')}
-        onLogout={handleLogout}
-        isLoggingOut={isSubmitting}
-      />
+      <>
+        <ProfileView
+          key={`${session.user.id}-${displayName}`}
+          userId={session.user.id}
+          email={displayEmail}
+          fullName={displayName}
+          theme={appearance.theme}
+          accent={appearance.accent}
+          themeOptions={appearance.themeOptions}
+          accentOptions={appearance.accentOptions}
+          onThemeChange={appearance.setTheme}
+          onAccentChange={appearance.setAccent}
+          onFullNameSaved={handleFullNameSaved}
+          onBack={() => setView('dashboard')}
+          onLogout={handleLogout}
+          isLoggingOut={isSubmitting}
+        />
+        <MobileBottomNav
+          activeItem="profile"
+          onHome={() => setView('dashboard')}
+          onTransactions={() => setView('dashboard')}
+          onReports={() => setView('dashboard')}
+          onProfile={() => setView('profile')}
+        />
+      </>
     )
   }
 

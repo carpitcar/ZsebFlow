@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { formatHuf, toNumber } from '../lib/currency'
+import { toNumber } from '../lib/currency'
 import {
   addMonths,
   formatActivePeriodLabel,
@@ -15,10 +15,11 @@ import type {
   TransactionTypeFilter,
 } from '../types/finance'
 import { AppHeader } from './AppHeader'
+import { HomeDashboard } from './HomeDashboard'
+import { MobileBottomNav } from './MobileBottomNav'
 import { TransactionDetails } from './TransactionDetails'
 import { TransactionEditForm } from './TransactionEditForm'
 import { TransactionForm } from './TransactionForm'
-import { TransactionList } from './TransactionList'
 
 type Message = {
   type: 'success' | 'error'
@@ -66,13 +67,6 @@ export function DashboardView({
   const [dateTo, setDateTo] = useState(initialMonthRange.lastDay)
   const [listError, setListError] = useState<string | null>(null)
   const [message, setMessage] = useState<Message | null>(null)
-
-  const listTitle =
-    transactionFilter === 'income'
-      ? 'Bevételek'
-      : transactionFilter === 'expense'
-        ? 'Kiadások'
-        : 'Tranzakciók'
 
   const activePeriodHeading = formatActivePeriodLabel(dateFrom, dateTo)
 
@@ -332,6 +326,18 @@ export function DashboardView({
     }
   }
 
+  const scrollToHomeSection = (sectionId?: string) => {
+    if (!sectionId) {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      return
+    }
+
+    document.getElementById(sectionId)?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    })
+  }
+
   if (isLoading) {
     return (
       <main className="app-shell page-shell">
@@ -373,114 +379,45 @@ export function DashboardView({
   return (
     <main className="app-shell page-shell">
       <section className="dashboard-panel finance-dashboard">
-        <AppHeader
-          subtitle={`${displayName} · ${displayEmail}`}
-          onProfile={onOpenProfile}
+        <HomeDashboard
+          displayName={displayName}
+          displayEmail={displayEmail}
+          accountName={account.name || 'Házipénztár'}
+          activePeriodHeading={activePeriodHeading}
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+          totals={dashboardTotals}
+          transactions={filteredTransactions}
+          transactionFilter={transactionFilter}
+          listError={listError}
+          isExporting={isExporting}
+          onOpenProfile={onOpenProfile}
+          onNewTransaction={() => setIsFormOpen(true)}
+          onMonthChange={handleMonthChange}
+          onSummaryFilter={handleSummaryFilter}
+          onDateFromChange={handleDateFromChange}
+          onDateToChange={handleDateToChange}
+          onExport={() => void handleExport()}
+          onSelectTransaction={(transaction) => {
+            setSelectedTransaction(transaction)
+            setIsEditOpen(false)
+          }}
         />
-
-        <div className="dashboard-actions">
-          <div className="month-selector" aria-label="Kiválasztott időszak">
-            <button
-              className="secondary-button compact-button month-nav-button"
-              type="button"
-              aria-label="Előző hónap"
-              onClick={() => handleMonthChange(-1)}
-            >
-              <span className="desktop-label">Előző hónap</span>
-              <span className="mobile-label" aria-hidden="true">
-                ‹
-              </span>
-            </button>
-            <strong>{activePeriodHeading}</strong>
-            <button
-              className="secondary-button compact-button month-nav-button"
-              type="button"
-              aria-label="Következő hónap"
-              onClick={() => handleMonthChange(1)}
-            >
-              <span className="desktop-label">Következő hónap</span>
-              <span className="mobile-label" aria-hidden="true">
-                ›
-              </span>
-            </button>
-          </div>
-          <button
-            className="primary-button new-transaction-button"
-            type="button"
-            onClick={() => setIsFormOpen(true)}
-          >
-            <span className="desktop-label">Új tranzakció</span>
-            <span className="mobile-label" aria-hidden="true">
-              + Új
-            </span>
-          </button>
-        </div>
 
         {message ? (
           <p className={`message ${message.type}`} role="status">
             {message.text}
           </p>
         ) : null}
-
-        <div className="metric-grid">
-          <article className="metric-card featured">
-            <span>Aktuális egyenleg</span>
-            <strong>{formatHuf(dashboardTotals.balance)}</strong>
-            <small>{account.name || 'Házipénztár'}</small>
-          </article>
-          <button
-            className={
-              transactionFilter === 'income'
-                ? 'metric-card clickable active income'
-                : 'metric-card clickable income'
-            }
-            type="button"
-            aria-pressed={transactionFilter === 'income'}
-            onClick={() => handleSummaryFilter('income')}
-          >
-            <span>Havi bevétel</span>
-            <strong>{formatHuf(dashboardTotals.rangeIncome)}</strong>
-          </button>
-          <button
-            className={
-              transactionFilter === 'expense'
-                ? 'metric-card clickable active expense'
-                : 'metric-card clickable expense'
-            }
-            type="button"
-            aria-pressed={transactionFilter === 'expense'}
-            onClick={() => handleSummaryFilter('expense')}
-          >
-            <span>Havi kiadás</span>
-            <strong>{formatHuf(dashboardTotals.rangeExpenses)}</strong>
-          </button>
-          <article className="metric-card">
-            <span>Havi különbség</span>
-            <strong>
-              {formatHuf(dashboardTotals.rangeIncome - dashboardTotals.rangeExpenses)}
-            </strong>
-          </article>
-        </div>
-
-        <section className="transaction-section">
-          <TransactionList
-            title={listTitle}
-            transactions={filteredTransactions}
-            isLoading={false}
-            error={listError}
-            dateFrom={dateFrom}
-            dateTo={dateTo}
-            isExporting={isExporting}
-            onSelect={(transaction) => {
-              setSelectedTransaction(transaction)
-              setIsEditOpen(false)
-            }}
-            onDateFromChange={handleDateFromChange}
-            onDateToChange={handleDateToChange}
-            onExport={() => void handleExport()}
-          />
-        </section>
       </section>
+
+      <MobileBottomNav
+        activeItem="home"
+        onHome={() => scrollToHomeSection()}
+        onTransactions={() => scrollToHomeSection('transactions-section')}
+        onReports={() => scrollToHomeSection('reports-section')}
+        onProfile={onOpenProfile}
+      />
 
       {isFormOpen ? (
         <TransactionForm
