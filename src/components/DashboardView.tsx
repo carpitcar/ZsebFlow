@@ -25,6 +25,7 @@ type Message = {
 
 type DashboardViewProps = {
   userId: string
+  newTransactionRequest: number
   onOpenProfile: () => void
   onLogout: () => Promise<void>
   isLoggingOut: boolean
@@ -38,12 +39,14 @@ const selectDefaultAccount = (accounts: CashAccount[]) =>
 
 export function DashboardView({
   userId,
+  newTransactionRequest,
   onOpenProfile,
   onLogout,
   isLoggingOut,
 }: DashboardViewProps) {
   const initialMonthRange = getCurrentMonthRange()
   const loadRequestRef = useRef(0)
+  const handledNewTransactionRequestRef = useRef(0)
   const [account, setAccount] = useState<CashAccount | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
@@ -160,6 +163,16 @@ export function DashboardView({
 
     return () => window.clearTimeout(timeoutId)
   }, [loadDashboard])
+
+  useEffect(() => {
+    if (
+      account &&
+      newTransactionRequest > handledNewTransactionRequestRef.current
+    ) {
+      handledNewTransactionRequestRef.current = newTransactionRequest
+      setIsFormOpen(true)
+    }
+  }, [account, newTransactionRequest])
 
   const handleTransactionSaved = async () => {
     await loadDashboard()

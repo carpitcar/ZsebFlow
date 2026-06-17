@@ -36,6 +36,7 @@ function App() {
   const [password, setPassword] = useState('')
   const [passwordConfirmation, setPasswordConfirmation] = useState('')
   const [confirmationEmail, setConfirmationEmail] = useState('')
+  const [newTransactionRequest, setNewTransactionRequest] = useState(0)
   const [message, setMessage] = useState<Message | null>(null)
   const appearance = useAppearance()
 
@@ -273,6 +274,11 @@ function App() {
     })
   }
 
+  const requestNewTransaction = () => {
+    setNewTransactionRequest((request) => request + 1)
+    setView('dashboard')
+  }
+
   if (isInitializing) {
     return (
       <main className="app-shell">
@@ -308,7 +314,7 @@ function App() {
           activeItem="profile"
           onHome={() => setView('dashboard')}
           onTransactions={() => setView('dashboard')}
-          onAdd={() => setView('dashboard')}
+          onAdd={requestNewTransaction}
           onReports={() => setView('dashboard')}
           onProfile={() => setView('profile')}
         />
@@ -320,6 +326,7 @@ function App() {
     return (
       <DashboardView
         userId={session.user.id}
+        newTransactionRequest={newTransactionRequest}
         onOpenProfile={() => setView('profile')}
         onLogout={handleLogout}
         isLoggingOut={isSubmitting}

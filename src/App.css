@@ -3,7 +3,7 @@
   min-height: 100svh;
   display: grid;
   place-items: center;
-  padding: 24px;
+  padding: 24px 24px calc(112px + env(safe-area-inset-bottom));
   box-sizing: border-box;
 }
 
@@ -496,10 +496,10 @@ button:focus-visible {
 .mobile-bottom-nav {
   position: fixed;
   left: 50%;
-  bottom: max(10px, env(safe-area-inset-bottom));
+  bottom: max(16px, env(safe-area-inset-bottom));
   z-index: 9;
-  width: min(calc(100% - 24px), 430px);
-  display: none;
+  width: min(calc(100% - 32px), 680px);
+  display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr)) 56px repeat(2, minmax(0, 1fr));
   gap: 4px;
   border: 1px solid color-mix(in srgb, var(--border), transparent 20%);
@@ -1224,7 +1224,8 @@ button.metric-card {
   }
 
   .mobile-bottom-nav {
-    display: grid;
+    bottom: max(10px, env(safe-area-inset-bottom));
+    width: min(calc(100% - 24px), 430px);
     grid-template-columns: repeat(2, minmax(0, 1fr)) 54px repeat(2, minmax(0, 1fr));
   }
 
