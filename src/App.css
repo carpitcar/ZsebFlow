@@ -331,7 +331,7 @@ button:focus-visible {
 }
 
 .home-brand-title {
-  color: var(--accent);
+  color: #ffffff;
   font-size: 26px;
   font-weight: 850;
   line-height: 1.05;
