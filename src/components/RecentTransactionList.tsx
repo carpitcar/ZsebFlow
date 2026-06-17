@@ -32,7 +32,7 @@ export function RecentTransactionList({
       ) : null}
 
       {transactions.length === 0 ? (
-        <p className="empty-state">Ebben az időszakban még nincs rögzített tétel.</p>
+        <p className="empty-state">Ebben a hónapban még nincs rögzített tétel.</p>
       ) : (
         <div className="recent-transaction-list">
           {transactions.map((transaction) => {

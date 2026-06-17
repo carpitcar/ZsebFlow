@@ -8,6 +8,8 @@
 }
 
 .app-shell:has(.finance-dashboard) {
+  align-items: start;
+  justify-items: center;
   background:
     radial-gradient(circle at 18% 0%, var(--accent-soft), transparent 28%),
     radial-gradient(circle at 92% 12%, rgba(244, 114, 182, 0.12), transparent 24%);
@@ -326,8 +328,10 @@ button:focus-visible {
 .home-dashboard {
   width: 100%;
   display: grid;
-  gap: 12px;
-  min-height: calc(100svh - 132px);
+  align-content: start;
+  gap: 26px;
+  grid-auto-rows: max-content;
+  min-height: 0;
 }
 
 .home-brand-title {
@@ -1544,8 +1548,8 @@ button.settings-row {
   }
 
   .home-dashboard {
-    min-height: calc(100svh - 116px);
-    gap: 10px;
+    gap: 24px;
+    min-height: 0;
   }
 
   .home-brand-title {
