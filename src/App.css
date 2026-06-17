@@ -382,6 +382,53 @@ button:focus-visible {
   white-space: nowrap;
 }
 
+.category-filter-bar {
+  max-width: 100%;
+  display: flex;
+  gap: 9px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  padding: 1px 2px 3px;
+  scrollbar-width: none;
+}
+
+.category-filter-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.category-filter-bar button {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  border: 2px solid color-mix(in srgb, var(--category-color, var(--border)) 45%, transparent);
+  border-radius: 999px;
+  background: var(--category-color, var(--surface-strong));
+  cursor: pointer;
+  padding: 0;
+}
+
+.category-filter-bar button.all {
+  background:
+    linear-gradient(135deg, var(--surface-strong) 0 48%, var(--border) 48% 52%, var(--surface-strong) 52% 100%);
+  border-color: var(--border-strong);
+}
+
+.category-filter-bar button.active {
+  border-color: var(--text-strong);
+  box-shadow: 0 0 0 3px var(--focus);
+}
+
+.category-filter-bar button.active::after {
+  content: '';
+  display: block;
+  width: 8px;
+  height: 8px;
+  margin: auto;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18);
+}
+
 .recent-transaction-row.income .recent-transaction-side strong {
   color: var(--success-text);
 }

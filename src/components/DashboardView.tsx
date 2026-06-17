@@ -5,6 +5,7 @@ import {
   getCurrentMonthRange,
   getMonthRange,
 } from '../lib/date'
+import { normalizeCategoryColor } from '../lib/categoryColor'
 import { supabase } from '../lib/supabase'
 import type {
   CashAccount,
@@ -12,6 +13,7 @@ import type {
   Transaction,
 } from '../types/finance'
 import { AppHeader } from './AppHeader'
+import type { CategoryFilterOption } from './CategoryFilterBar'
 import { HomeDashboard } from './HomeDashboard'
 import { MobileBottomNav } from './MobileBottomNav'
 import { TransactionDetails } from './TransactionDetails'
@@ -58,6 +60,7 @@ export function DashboardView({
   const [isDeleting, setIsDeleting] = useState(false)
   const [dateFrom, setDateFrom] = useState(initialMonthRange.firstDay)
   const [dateTo, setDateTo] = useState(initialMonthRange.lastDay)
+  const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null)
   const [activeNavItem, setActiveNavItem] =
     useState<'home' | 'transactions' | 'reports'>('home')
   const [listError, setListError] = useState<string | null>(null)
@@ -73,6 +76,38 @@ export function DashboardView({
           transaction.transaction_date <= dateTo,
       ),
     [dateFrom, dateTo, transactions],
+  )
+
+  const activeCategoryFilters = useMemo<CategoryFilterOption[]>(() => {
+    const categoryMap = new Map<string, CategoryFilterOption>()
+
+    activeRangeTransactions.forEach((transaction) => {
+      const category = transaction.categories
+
+      if (!category || categoryMap.has(category.id)) {
+        return
+      }
+
+      categoryMap.set(category.id, {
+        id: category.id,
+        name: category.name,
+        color: normalizeCategoryColor(category.color),
+      })
+    })
+
+    return Array.from(categoryMap.values()).sort((firstCategory, secondCategory) =>
+      firstCategory.name.localeCompare(secondCategory.name, 'hu-HU'),
+    )
+  }, [activeRangeTransactions])
+
+  const filteredTransactions = useMemo(
+    () =>
+      activeCategoryId
+        ? activeRangeTransactions.filter(
+            (transaction) => transaction.category_id === activeCategoryId,
+          )
+        : activeRangeTransactions,
+    [activeCategoryId, activeRangeTransactions],
   )
 
   const loadDashboard = useCallback(async () => {
@@ -173,6 +208,15 @@ export function DashboardView({
       setIsFormOpen(true)
     }
   }, [account, newTransactionRequest])
+
+  useEffect(() => {
+    if (
+      activeCategoryId &&
+      !activeCategoryFilters.some((category) => category.id === activeCategoryId)
+    ) {
+      setActiveCategoryId(null)
+    }
+  }, [activeCategoryFilters, activeCategoryId])
 
   const handleTransactionSaved = async () => {
     await loadDashboard()
@@ -288,9 +332,12 @@ export function DashboardView({
       <section className="dashboard-panel finance-dashboard">
         <HomeDashboard
           activePeriodHeading={activePeriodHeading}
-          transactions={activeRangeTransactions}
+          categoryFilters={activeCategoryFilters}
+          activeCategoryId={activeCategoryId}
+          transactions={filteredTransactions}
           listError={listError}
           onMonthChange={handleMonthChange}
+          onCategoryFilterChange={setActiveCategoryId}
           onSelectTransaction={(transaction) => {
             setSelectedTransaction(transaction)
             setIsEditOpen(false)
