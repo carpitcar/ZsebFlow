@@ -249,7 +249,9 @@ export function ReportsView({
         .order('name', { ascending: true }),
       supabase
         .from('transactions')
-        .select('*, categories(*)')
+        .select(
+          'id, user_id, account_id, category_id, type, amount, currency, payment_method, transaction_date, merchant_name, note, created_at, categories(*)',
+        )
         .eq('user_id', userId)
         .eq('account_id', defaultAccount.id)
         .eq('currency', selectedCurrency)
@@ -280,7 +282,7 @@ export function ReportsView({
 
     setAccount(defaultAccount)
     setCategories((categoryRows ?? []) as Category[])
-    setTransactions((transactionRows ?? []) as Transaction[])
+    setTransactions((transactionRows ?? []) as unknown as Transaction[])
     setIsLoading(false)
   }, [dateFrom, dateTo, selectedCurrency, userId])
 

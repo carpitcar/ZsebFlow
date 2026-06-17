@@ -18,6 +18,8 @@ export type UserCurrency = {
   created_at?: string
 }
 
+export type PaymentMethod = 'unknown' | 'card' | 'cash' | 'bank_transfer'
+
 export type Category = {
   id: string
   user_id?: string
@@ -35,6 +37,7 @@ export type Transaction = {
   type: TransactionType
   amount: number | string
   currency: string
+  payment_method: PaymentMethod
   transaction_date: string
   merchant_name: string | null
   note: string | null
@@ -46,6 +49,7 @@ export type TransactionFormValues = {
   type: TransactionType
   amount: string
   currency: string
+  paymentMethod: PaymentMethod
   categoryId: string
   transactionDate: string
   merchantName: string

@@ -2,6 +2,7 @@ import ExcelJS from 'exceljs'
 import { saveAs } from 'file-saver'
 import { normalizeCurrencyCode, toNumber } from './currency'
 import { formatPeriodLabel } from './date'
+import { getPaymentMethodLabel, normalizePaymentMethod } from './paymentMethod'
 import type { Transaction } from '../types/finance'
 
 type ExportTransactionsOptions = {
@@ -30,6 +31,7 @@ export async function exportTransactionsXlsx({
     { header: 'Kategória', key: 'category', width: 24 },
     { header: 'Partner / üzlet', key: 'merchant', width: 26 },
     { header: 'Megjegyzés', key: 'note', width: 34 },
+    { header: 'Fizetési mód', key: 'paymentMethod', width: 18 },
     { header: 'Pénznem', key: 'currency', width: 12 },
     { header: 'Összeg', key: 'amount', width: 16 },
   ]
@@ -37,7 +39,7 @@ export async function exportTransactionsXlsx({
   transactionSheet.views = [{ state: 'frozen', ySplit: 1 }]
   transactionSheet.autoFilter = {
     from: 'A1',
-    to: 'G1',
+    to: 'H1',
   }
 
   const headerRow = transactionSheet.getRow(1)
@@ -53,6 +55,7 @@ export async function exportTransactionsXlsx({
     const amount = toNumber(transaction.amount)
     const signedAmount = transaction.type === 'income' ? amount : -amount
     const currencyCode = normalizeCurrencyCode(transaction.currency)
+    const paymentMethod = normalizePaymentMethod(transaction.payment_method)
 
     const row = transactionSheet.addRow({
       date: parseLocalDate(transaction.transaction_date),
@@ -60,6 +63,7 @@ export async function exportTransactionsXlsx({
       category: transaction.categories?.name ?? 'Kategória nélkül',
       merchant: transaction.merchant_name ?? '',
       note: transaction.note ?? '',
+      paymentMethod: getPaymentMethodLabel(paymentMethod),
       currency: currencyCode,
       amount: signedAmount,
     })

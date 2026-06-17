@@ -808,6 +808,11 @@ button.metric-card {
   padding: 14px;
 }
 
+.filter-select {
+  display: grid;
+  gap: 5px;
+}
+
 .mobile-date-field {
   display: none;
 }
@@ -924,6 +929,27 @@ button.metric-card {
   color: var(--muted);
   font-size: 14px;
   overflow-wrap: anywhere;
+}
+
+.transaction-payment-method {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-left: 4px;
+  color: var(--muted);
+  vertical-align: middle;
+}
+
+.transaction-payment-method svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.9;
 }
 
 .transaction-amount {

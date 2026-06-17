@@ -1,6 +1,12 @@
 import { useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { normalizeCurrencyCode } from '../lib/currency'
+import {
+  paymentMethodOptions,
+  paymentMethodLabels,
+  normalizePaymentMethod,
+  type PaymentMethod,
+} from '../lib/paymentMethod'
 import { numberToMoneyInput, parseMoneyInput } from '../lib/money'
 import { supabase } from '../lib/supabase'
 import type {
@@ -30,6 +36,7 @@ const getInitialValues = (transaction: Transaction): TransactionFormValues => ({
   type: transaction.type,
   amount: numberToMoneyInput(transaction.amount),
   currency: normalizeCurrencyCode(transaction.currency),
+  paymentMethod: normalizePaymentMethod(transaction.payment_method),
   categoryId: transaction.category_id,
   transactionDate: transaction.transaction_date,
   merchantName: transaction.merchant_name ?? '',
@@ -81,6 +88,14 @@ export function TransactionEditForm({
       ...normalizedCurrencies,
     ]
   }, [activeCurrencies, userId, values.currency])
+
+  const paymentMethodSelectOptions = useMemo(
+    () => [
+      { value: 'unknown' as const, label: paymentMethodLabels.unknown },
+      ...paymentMethodOptions,
+    ],
+    [],
+  )
 
   const selectedCategoryId =
     values.categoryId &&
@@ -144,6 +159,7 @@ export function TransactionEditForm({
         type: values.type,
         amount,
         currency: normalizeCurrencyCode(values.currency),
+        payment_method: normalizePaymentMethod(values.paymentMethod),
         transaction_date: values.transactionDate,
         merchant_name: merchantName || null,
         note: note || null,
@@ -229,6 +245,28 @@ export function TransactionEditForm({
               {currencyOptions.map((currency) => (
                 <option key={currency.id} value={currency.currency_code}>
                   {currency.currency_code}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label htmlFor="editTransactionPaymentMethod">
+            Fizetési mód
+            <select
+              id="editTransactionPaymentMethod"
+              value={values.paymentMethod}
+              onChange={(event) =>
+                updateField(
+                  'paymentMethod',
+                  event.target.value as PaymentMethod,
+                )
+              }
+              required
+              disabled={isSaving}
+            >
+              {paymentMethodSelectOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
                 </option>
               ))}
             </select>

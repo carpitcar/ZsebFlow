@@ -1,6 +1,7 @@
 import { formatCurrency, normalizeCurrencyCode, toNumber } from '../lib/currency'
 import { formatHungarianDate } from '../lib/date'
 import { normalizeCategoryColor } from '../lib/categoryColor'
+import { getPaymentMethodLabel } from '../lib/paymentMethod'
 import type { Transaction } from '../types/finance'
 
 type TransactionDetailsProps = {
@@ -63,6 +64,10 @@ export function TransactionDetails({
           <div className="transaction-detail-row">
             <dt>Pénznem</dt>
             <dd>{normalizeCurrencyCode(transaction.currency)}</dd>
+          </div>
+          <div className="transaction-detail-row">
+            <dt>Fizetési mód</dt>
+            <dd>{getPaymentMethodLabel(transaction.payment_method)}</dd>
           </div>
           <div className="transaction-detail-row">
             <dt>Kategória</dt>

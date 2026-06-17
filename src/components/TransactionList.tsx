@@ -2,6 +2,12 @@ import type { CSSProperties } from 'react'
 import { formatCurrency, toNumber } from '../lib/currency'
 import { formatActivePeriodLabel, formatHungarianDate } from '../lib/date'
 import { normalizeCategoryColor } from '../lib/categoryColor'
+import {
+  getPaymentMethodLabel,
+  paymentMethodFilterOptions,
+  type PaymentMethodFilter,
+  normalizePaymentMethod,
+} from '../lib/paymentMethod'
 import type { Transaction } from '../types/finance'
 import { CompactDateRange } from './CompactDateRange'
 
@@ -13,10 +19,47 @@ type TransactionListProps = {
   dateFrom: string
   dateTo: string
   isExporting: boolean
+  paymentMethodFilter?: PaymentMethodFilter
   onSelect: (transaction: Transaction) => void
   onDateFromChange: (value: string) => void
   onDateToChange: (value: string) => void
   onExport: () => void
+  onPaymentMethodChange?: (value: PaymentMethodFilter) => void
+}
+
+function PaymentMethodIcon({
+  paymentMethod,
+}: {
+  paymentMethod: PaymentMethodFilter
+}) {
+  if (paymentMethod === 'card') {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <rect x="3.5" y="6" width="17" height="12" rx="2.2" fill="none" />
+        <path d="M3.5 10.2h17" />
+        <path d="M7 14h4" />
+      </svg>
+    )
+  }
+
+  if (paymentMethod === 'cash') {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <rect x="4" y="7" width="16" height="10" rx="2" fill="none" />
+        <path d="M7 10h4M13 14h4" />
+        <path d="M7.2 17V7M16.8 17V7" />
+      </svg>
+    )
+  }
+
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24">
+      <path d="M6 7h12v10H6z" fill="none" />
+      <path d="M6 12h12" />
+      <path d="M10 8.5 8 10.5l2 2" />
+      <path d="M14 8.5l2 2-2 2" />
+    </svg>
+  )
 }
 
 export function TransactionList({
@@ -27,10 +70,12 @@ export function TransactionList({
   dateFrom,
   dateTo,
   isExporting,
+  paymentMethodFilter = 'all',
   onSelect,
   onDateFromChange,
   onDateToChange,
   onExport,
+  onPaymentMethodChange,
 }: TransactionListProps) {
   return (
     <div className="transaction-list-panel">
@@ -61,6 +106,24 @@ export function TransactionList({
           onDateFromChange={onDateFromChange}
           onDateToChange={onDateToChange}
         />
+        {onPaymentMethodChange ? (
+          <label className="filter-select" htmlFor="paymentMethodFilter">
+            Fizetési mód
+            <select
+              id="paymentMethodFilter"
+              value={paymentMethodFilter}
+              onChange={(event) =>
+                onPaymentMethodChange(event.target.value as PaymentMethodFilter)
+              }
+            >
+              {paymentMethodFilterOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         <button
           className="secondary-button compact-button desktop-export-button inline-export-button"
           type="button"
@@ -92,6 +155,7 @@ export function TransactionList({
               transaction.note?.trim() ||
               ''
             const categoryColor = normalizeCategoryColor(category?.color)
+            const paymentMethod = normalizePaymentMethod(transaction.payment_method)
 
             return (
               <button
@@ -126,6 +190,12 @@ export function TransactionList({
                   <span className="transaction-meta">
                     {formatHungarianDate(transaction.transaction_date)}
                     {description ? ` · ${description}` : ''}
+                    <span
+                      className="transaction-payment-method"
+                      aria-label={getPaymentMethodLabel(paymentMethod)}
+                    >
+                      <PaymentMethodIcon paymentMethod={paymentMethod} />
+                    </span>
                   </span>
                 </span>
                 <span className="transaction-amount">

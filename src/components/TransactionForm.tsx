@@ -3,6 +3,11 @@ import type { FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 import { formatLocalDateInput } from '../lib/date'
 import { normalizeCurrencyCode } from '../lib/currency'
+import {
+  paymentMethodOptions,
+  type PaymentMethod,
+  normalizePaymentMethod,
+} from '../lib/paymentMethod'
 import { parseMoneyInput } from '../lib/money'
 import type {
   CashAccount,
@@ -32,6 +37,7 @@ const getInitialValues = (defaultCurrency: string): TransactionFormValues => ({
   type: 'expense',
   amount: '',
   currency: normalizeCurrencyCode(defaultCurrency),
+  paymentMethod: 'card',
   categoryId: '',
   transactionDate: formatLocalDateInput(new Date()),
   merchantName: '',
@@ -147,6 +153,7 @@ export function TransactionForm({
       type: values.type,
       amount,
       currency: normalizeCurrencyCode(values.currency),
+      payment_method: normalizePaymentMethod(values.paymentMethod),
       transaction_date: values.transactionDate,
       merchant_name: merchantName || null,
       note: note || null,
@@ -226,6 +233,24 @@ export function TransactionForm({
               {currencyOptions.map((currency) => (
                 <option key={currency.id} value={currency.currency_code}>
                   {currency.currency_code}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label htmlFor="transactionPaymentMethod">
+            Fizetési mód
+            <select
+              id="transactionPaymentMethod"
+              value={values.paymentMethod}
+              onChange={(event) =>
+                updateField('paymentMethod', event.target.value as PaymentMethod)
+              }
+              required
+            >
+              {paymentMethodOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
                 </option>
               ))}
             </select>
