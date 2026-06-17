@@ -7,10 +7,16 @@ import {
 } from '../lib/date'
 import { normalizeCategoryColor } from '../lib/categoryColor'
 import { supabase } from '../lib/supabase'
+import {
+  ensureInitialUserCurrencies,
+  getActiveCurrencies,
+  getDefaultCurrency,
+} from '../lib/userCurrencies'
 import type {
   CashAccount,
   Category,
   Transaction,
+  UserCurrency,
 } from '../types/finance'
 import { AppHeader } from './AppHeader'
 import type { CategoryFilterOption } from './CategoryFilterBar'
@@ -53,6 +59,7 @@ export function DashboardView({
   const handledNewTransactionRequestRef = useRef(0)
   const [account, setAccount] = useState<CashAccount | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
+  const [currencies, setCurrencies] = useState<UserCurrency[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isFormOpen, setIsFormOpen] = useState(false)
@@ -159,6 +166,7 @@ export function DashboardView({
     const [
       { data: categoryRows, error: categoryError },
       { data: transactionRows, error: transactionError },
+      { data: currencyRows, error: currencyError },
     ] = await Promise.all([
       supabase
         .from('categories')
@@ -172,22 +180,25 @@ export function DashboardView({
         .eq('account_id', defaultAccount.id)
         .order('transaction_date', { ascending: false })
         .order('created_at', { ascending: false }),
+      ensureInitialUserCurrencies(userId),
     ])
 
     if (requestId !== loadRequestRef.current) {
       return
     }
 
-    if (categoryError || transactionError) {
+    if (categoryError || transactionError || currencyError) {
       setMessage({
         type: 'error',
         text:
           categoryError?.message ??
           transactionError?.message ??
+          currencyError?.message ??
           'Nem sikerült betölteni az adatokat.',
       })
       setAccount(defaultAccount)
       setCategories([])
+      setCurrencies([])
       setTransactions([])
       setIsLoading(false)
       return
@@ -195,6 +206,7 @@ export function DashboardView({
 
     setAccount(defaultAccount)
     setCategories((categoryRows ?? []) as Category[])
+    setCurrencies(currencyRows)
     setTransactions((transactionRows ?? []) as Transaction[])
     setIsLoading(false)
   }, [userId])
@@ -276,6 +288,9 @@ export function DashboardView({
     setActiveCategoryId(null)
     setListError(null)
   }
+
+  const activeCurrencies = getActiveCurrencies(currencies)
+  const defaultCurrency = getDefaultCurrency(currencies)?.currency_code ?? 'HUF'
 
   const scrollToHomeSection = (sectionId?: string) => {
     if (!sectionId) {
@@ -374,6 +389,8 @@ export function DashboardView({
           userId={userId}
           account={account}
           categories={categories}
+          activeCurrencies={activeCurrencies}
+          defaultCurrency={defaultCurrency}
           onClose={() => setIsFormOpen(false)}
           onSaved={handleTransactionSaved}
         />
@@ -397,6 +414,7 @@ export function DashboardView({
           userId={userId}
           transaction={selectedTransaction}
           categories={categories}
+          activeCurrencies={activeCurrencies}
           onClose={() => setIsEditOpen(false)}
           onSaved={handleTransactionUpdated}
         />

@@ -1,7 +1,14 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
+import {
+  defaultCurrencyCode,
+  isValidCurrencyCode,
+  normalizeCurrencyCode,
+} from '../lib/currency'
 import { supabase } from '../lib/supabase'
+import { ensureInitialUserCurrencies, getDefaultCurrency } from '../lib/userCurrencies'
 import type { AccentOption, ThemeOption } from '../types/appearance'
+import type { UserCurrency } from '../types/finance'
 import { CategoryManager } from './CategoryManager'
 
 type Option<TValue extends string> = {
@@ -70,7 +77,7 @@ function UserCircleIcon() {
   )
 }
 
-function SettingsGlyph({ children }: { children: React.ReactNode }) {
+function SettingsGlyph({ children }: { children: ReactNode }) {
   return <span className="settings-row-icon" aria-hidden="true">{children}</span>
 }
 
@@ -151,6 +158,289 @@ function SettingsRow({
   return <div className={danger ? 'settings-row danger' : 'settings-row'}>{content}</div>
 }
 
+function CurrencyManager({
+  userId,
+  currencies,
+  onCurrenciesChanged,
+}: {
+  userId: string
+  currencies: UserCurrency[]
+  onCurrenciesChanged: () => Promise<void>
+}) {
+  const [newCurrencyCode, setNewCurrencyCode] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
+  const [message, setMessage] = useState<Message | null>(null)
+  const sortedCurrencies = useMemo(
+    () =>
+      [...currencies].sort((firstCurrency, secondCurrency) =>
+        firstCurrency.currency_code.localeCompare(secondCurrency.currency_code),
+      ),
+    [currencies],
+  )
+
+  const handleAddCurrency = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setMessage(null)
+
+    const currencyCode = newCurrencyCode.trim().toUpperCase()
+
+    if (!isValidCurrencyCode(currencyCode)) {
+      setMessage({
+        type: 'error',
+        text: 'A pénznem kódja pontosan 3 nagybetű legyen.',
+      })
+      return
+    }
+
+    if (
+      currencies.some(
+        (currency) => currency.currency_code === normalizeCurrencyCode(currencyCode),
+      )
+    ) {
+      setMessage({
+        type: 'error',
+        text: 'Ez a pénznem már létezik.',
+      })
+      return
+    }
+
+    setIsSaving(true)
+
+    const { error } = await supabase.from('user_currencies').insert({
+      user_id: userId,
+      currency_code: currencyCode,
+      is_active: true,
+      is_default: currencies.length === 0,
+    })
+
+    if (error) {
+      setMessage({
+        type: 'error',
+        text: `Nem sikerült hozzáadni a pénznemet: ${error.message}`,
+      })
+      setIsSaving(false)
+      return
+    }
+
+    setNewCurrencyCode('')
+    await onCurrenciesChanged()
+    setMessage({
+      type: 'success',
+      text: 'A pénznem hozzáadva.',
+    })
+    setIsSaving(false)
+  }
+
+  const handleSetDefault = async (currency: UserCurrency) => {
+    if (currency.is_default) {
+      return
+    }
+
+    setIsSaving(true)
+    setMessage(null)
+
+    const { error: clearError } = await supabase
+      .from('user_currencies')
+      .update({ is_default: false })
+      .eq('user_id', userId)
+
+    if (clearError) {
+      setMessage({
+        type: 'error',
+        text: `Nem sikerült módosítani az alapértelmezett pénznemet: ${clearError.message}`,
+      })
+      setIsSaving(false)
+      return
+    }
+
+    const { error: defaultError } = await supabase
+      .from('user_currencies')
+      .update({ is_default: true, is_active: true })
+      .eq('id', currency.id)
+      .eq('user_id', userId)
+
+    if (defaultError) {
+      setMessage({
+        type: 'error',
+        text: `Nem sikerült módosítani az alapértelmezett pénznemet: ${defaultError.message}`,
+      })
+      setIsSaving(false)
+      return
+    }
+
+    await onCurrenciesChanged()
+    setMessage({
+      type: 'success',
+      text: 'Az alapértelmezett pénznem módosítva.',
+    })
+    setIsSaving(false)
+  }
+
+  const handleToggleActive = async (currency: UserCurrency) => {
+    if (currency.is_default) {
+      setMessage({
+        type: 'error',
+        text: 'Az alapértelmezett pénznem nem kapcsolható ki.',
+      })
+      return
+    }
+
+    setIsSaving(true)
+    setMessage(null)
+
+    const { error } = await supabase
+      .from('user_currencies')
+      .update({ is_active: !currency.is_active })
+      .eq('id', currency.id)
+      .eq('user_id', userId)
+
+    if (error) {
+      setMessage({
+        type: 'error',
+        text: `Nem sikerült módosítani a pénznemet: ${error.message}`,
+      })
+      setIsSaving(false)
+      return
+    }
+
+    await onCurrenciesChanged()
+    setIsSaving(false)
+  }
+
+  const handleDelete = async (currency: UserCurrency) => {
+    if (currency.is_default) {
+      setMessage({
+        type: 'error',
+        text: 'Az alapértelmezett pénznem nem törölhető.',
+      })
+      return
+    }
+
+    setMessage(null)
+
+    const { count, error: countError } = await supabase
+      .from('transactions')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('currency', currency.currency_code)
+
+    if (countError) {
+      setMessage({
+        type: 'error',
+        text: `Nem sikerült ellenőrizni a pénznemet: ${countError.message}`,
+      })
+      return
+    }
+
+    if ((count ?? 0) > 0) {
+      setMessage({
+        type: 'error',
+        text: 'A pénznem nem törölhető, mert tranzakciók használják.',
+      })
+      return
+    }
+
+    setIsSaving(true)
+
+    const { error } = await supabase
+      .from('user_currencies')
+      .delete()
+      .eq('id', currency.id)
+      .eq('user_id', userId)
+
+    if (error) {
+      setMessage({
+        type: 'error',
+        text: `Nem sikerült törölni a pénznemet: ${error.message}`,
+      })
+      setIsSaving(false)
+      return
+    }
+
+    await onCurrenciesChanged()
+    setIsSaving(false)
+  }
+
+  return (
+    <section className="settings-section currency-manager">
+      <div>
+        <h2>Pénznemek</h2>
+        <p className="subtle-text">
+          Az alapértelmezett pénznem csak az új tranzakciókat érinti.
+        </p>
+      </div>
+
+      <form className="currency-form" onSubmit={handleAddCurrency}>
+        <label htmlFor="newCurrencyCode">
+          ISO kód
+          <input
+            id="newCurrencyCode"
+            type="text"
+            value={newCurrencyCode}
+            onChange={(event) =>
+              setNewCurrencyCode(event.target.value.toUpperCase())
+            }
+            maxLength={3}
+            placeholder="EUR"
+            disabled={isSaving}
+          />
+        </label>
+        <button className="primary-button" type="submit" disabled={isSaving}>
+          Hozzáadás
+        </button>
+      </form>
+
+      {message ? (
+        <p className={`message ${message.type}`} role="status">
+          {message.text}
+        </p>
+      ) : null}
+
+      <div className="currency-list">
+        {sortedCurrencies.map((currency) => (
+          <article className="currency-item" key={currency.id}>
+            <div>
+              <strong>{currency.currency_code}</strong>
+              <span>
+                {currency.is_default ? 'Alapértelmezett' : 'Nem alapértelmezett'} ·{' '}
+                {currency.is_active ? 'Aktív' : 'Inaktív'}
+              </span>
+            </div>
+            <div className="currency-actions">
+              {!currency.is_default ? (
+                <button
+                  className="secondary-button compact-button"
+                  type="button"
+                  onClick={() => void handleSetDefault(currency)}
+                  disabled={isSaving}
+                >
+                  Alapértelmezetté tesz
+                </button>
+              ) : null}
+              <button
+                className="secondary-button compact-button"
+                type="button"
+                onClick={() => void handleToggleActive(currency)}
+                disabled={isSaving || currency.is_default}
+              >
+                {currency.is_active ? 'Kikapcsolás' : 'Aktiválás'}
+              </button>
+              <button
+                className="secondary-button compact-button danger-button"
+                type="button"
+                onClick={() => void handleDelete(currency)}
+                disabled={isSaving || currency.is_default}
+              >
+                Törlés
+              </button>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 export function ProfileView({
   userId,
   email,
@@ -169,6 +459,8 @@ export function ProfileView({
   const [editableFullName, setEditableFullName] = useState(fullName)
   const [isSaving, setIsSaving] = useState(false)
   const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false)
+  const [isCurrencyManagerOpen, setIsCurrencyManagerOpen] = useState(false)
+  const [currencies, setCurrencies] = useState<UserCurrency[]>([])
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [openSetting, setOpenSetting] = useState<'theme' | 'accent' | null>(
     null,
@@ -179,6 +471,21 @@ export function ProfileView({
     themeOptions.find((option) => option.value === theme)?.label ?? ''
   const selectedAccentLabel =
     accentOptions.find((option) => option.value === accent)?.label ?? ''
+  const selectedDefaultCurrency =
+    getDefaultCurrency(currencies)?.currency_code ?? defaultCurrencyCode
+
+  const loadCurrencies = useCallback(async () => {
+    const { data } = await ensureInitialUserCurrencies(userId)
+    setCurrencies(data)
+  }, [userId])
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void loadCurrencies()
+    }, 0)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [loadCurrencies])
 
   const toggleSetting = (setting: 'theme' | 'accent') => {
     setOpenSetting((currentSetting) =>
@@ -253,6 +560,25 @@ export function ProfileView({
             onBrandClick={onBack}
           />
           <CategoryManager userId={userId} />
+        </section>
+      </main>
+    )
+  }
+
+  if (isCurrencyManagerOpen) {
+    return (
+      <main className="app-shell page-shell">
+        <section className="settings-panel profile-settings-panel">
+          <CompactSettingsHeader
+            subtitle="Pénznemek"
+            onBack={() => setIsCurrencyManagerOpen(false)}
+            onBrandClick={onBack}
+          />
+          <CurrencyManager
+            userId={userId}
+            currencies={currencies}
+            onCurrenciesChanged={loadCurrencies}
+          />
         </section>
       </main>
     )
@@ -392,8 +718,10 @@ export function ProfileView({
           />
           <SettingsRow
             icon={<SettingsGlyph>Ft</SettingsGlyph>}
-            title="Pénznem"
-            value="HUF"
+            title="Pénznemek"
+            subtitle="Aktív és alapértelmezett pénznemek"
+            value={selectedDefaultCurrency}
+            onClick={() => setIsCurrencyManagerOpen(true)}
           />
         </SettingsSection>
 

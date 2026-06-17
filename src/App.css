@@ -1257,7 +1257,7 @@ button.metric-card {
 
 .report-range-card {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
   padding: 12px;
 }
@@ -1815,6 +1815,94 @@ button.settings-row {
   box-shadow: 0 0 0 1px var(--border-strong);
 }
 
+.currency-manager {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  display: grid;
+  gap: 12px;
+  border: 1px solid color-mix(in srgb, var(--border), transparent 22%);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface), transparent 7%);
+  padding: 14px;
+}
+
+.currency-manager h2 {
+  color: var(--text-strong);
+  font-size: 16px;
+}
+
+.currency-manager .subtle-text {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.currency-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.currency-form .primary-button {
+  min-height: 40px;
+  border-radius: 12px;
+}
+
+.currency-list {
+  display: grid;
+  gap: 8px;
+}
+
+.currency-item {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--border), transparent 30%);
+  border-radius: 14px;
+  background: var(--control-bg);
+  padding: 10px;
+}
+
+.currency-item > div:first-child {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.currency-item strong {
+  color: var(--text-strong);
+  font-size: 14px;
+}
+
+.currency-item span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.currency-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: end;
+  gap: 6px;
+}
+
+.currency-actions .compact-button {
+  min-height: 32px;
+  border-radius: 10px;
+  font-size: 11px;
+  padding: 6px 8px;
+}
+
 .accent-green span {
   background: #0f766e;
 }
@@ -1881,7 +1969,7 @@ button.settings-row {
   }
 
   .report-range-card {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     gap: 8px;
     padding: 10px;
   }
@@ -2372,6 +2460,20 @@ button.settings-row {
     min-height: 32px;
     padding: 5px 7px;
     font-size: 11px;
+  }
+
+  .currency-manager {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .currency-form,
+  .currency-item {
+    grid-template-columns: 1fr;
+  }
+
+  .currency-actions {
+    justify-content: start;
   }
 
   .details-list div {

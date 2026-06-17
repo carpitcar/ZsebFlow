@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { normalizeCategoryColor } from '../lib/categoryColor'
-import { formatHuf, toNumber } from '../lib/currency'
+import {
+  defaultCurrencyCode,
+  formatCurrency,
+  normalizeCurrencyCode,
+  toNumber,
+} from '../lib/currency'
 import {
   formatCompactDate,
   formatHungarianDate,
@@ -11,7 +16,17 @@ import {
 } from '../lib/date'
 import { exportTransactionsXlsx } from '../lib/exportTransactions'
 import { supabase } from '../lib/supabase'
-import type { CashAccount, Category, Transaction } from '../types/finance'
+import {
+  ensureInitialUserCurrencies,
+  getActiveCurrencies,
+  getDefaultCurrency,
+} from '../lib/userCurrencies'
+import type {
+  CashAccount,
+  Category,
+  Transaction,
+  UserCurrency,
+} from '../types/finance'
 import { MobileBottomNav } from './MobileBottomNav'
 import { TransactionDetails } from './TransactionDetails'
 import { TransactionEditForm } from './TransactionEditForm'
@@ -168,11 +183,14 @@ export function ReportsView({
 }: ReportsViewProps) {
   const initialRange = getCurrentMonthRange()
   const loadRequestRef = useRef(0)
+  const hasAppliedDefaultCurrencyRef = useRef(false)
   const [account, setAccount] = useState<CashAccount | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
+  const [currencies, setCurrencies] = useState<UserCurrency[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [dateFrom, setDateFrom] = useState(initialRange.firstDay)
   const [dateTo, setDateTo] = useState(initialRange.lastDay)
+  const [selectedCurrency, setSelectedCurrency] = useState(defaultCurrencyCode)
   const [isLoading, setIsLoading] = useState(true)
   const [isExporting, setIsExporting] = useState(false)
   const [isFormOpen, setIsFormOpen] = useState(false)
@@ -234,6 +252,7 @@ export function ReportsView({
         .select('*, categories(*)')
         .eq('user_id', userId)
         .eq('account_id', defaultAccount.id)
+        .eq('currency', selectedCurrency)
         .gte('transaction_date', dateFrom)
         .lte('transaction_date', dateTo)
         .order('transaction_date', { ascending: false })
@@ -263,7 +282,28 @@ export function ReportsView({
     setCategories((categoryRows ?? []) as Category[])
     setTransactions((transactionRows ?? []) as Transaction[])
     setIsLoading(false)
-  }, [dateFrom, dateTo, userId])
+  }, [dateFrom, dateTo, selectedCurrency, userId])
+
+  const loadCurrencies = useCallback(async () => {
+    const { data } = await ensureInitialUserCurrencies(userId)
+    setCurrencies(data)
+
+    const defaultCurrency =
+      getDefaultCurrency(data)?.currency_code ?? defaultCurrencyCode
+
+    if (!hasAppliedDefaultCurrencyRef.current) {
+      hasAppliedDefaultCurrencyRef.current = true
+      setSelectedCurrency(defaultCurrency)
+      return
+    }
+
+    if (
+      data.length > 0 &&
+      !data.some((currency) => currency.currency_code === selectedCurrency)
+    ) {
+      setSelectedCurrency(defaultCurrency)
+    }
+  }, [selectedCurrency, userId])
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -272,6 +312,14 @@ export function ReportsView({
 
     return () => window.clearTimeout(timeoutId)
   }, [loadReports])
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void loadCurrencies()
+    }, 0)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [loadCurrencies])
 
   const totals = useMemo(
     () =>
@@ -391,6 +439,21 @@ export function ReportsView({
     ...trend.buckets.map((bucket) => bucket.amount),
     1,
   )
+  const activeCurrencies = getActiveCurrencies(currencies)
+  const defaultCurrency =
+    getDefaultCurrency(currencies)?.currency_code ?? defaultCurrencyCode
+  const currencyOptions =
+    activeCurrencies.length > 0
+      ? activeCurrencies
+      : [
+          {
+            id: defaultCurrency,
+            user_id: userId,
+            currency_code: defaultCurrency,
+            is_default: true,
+            is_active: true,
+          },
+        ]
 
   const handleDateFromChange = (value: string) => {
     if (!value) {
@@ -517,6 +580,22 @@ export function ReportsView({
               onChange={(event) => handleDateToChange(event.target.value)}
             />
           </label>
+          <label htmlFor="reportCurrency">
+            Pénznem
+            <select
+              id="reportCurrency"
+              value={selectedCurrency}
+              onChange={(event) =>
+                setSelectedCurrency(normalizeCurrencyCode(event.target.value))
+              }
+            >
+              {currencyOptions.map((currency) => (
+                <option key={currency.id} value={currency.currency_code}>
+                  {currency.currency_code}
+                </option>
+              ))}
+            </select>
+          </label>
         </section>
 
         {message ? (
@@ -528,15 +607,17 @@ export function ReportsView({
         <section className="report-summary-grid" aria-label="Összesítés">
           <article>
             <span>Bevétel</span>
-            <strong>{formatHuf(totals.income)}</strong>
+            <strong>{formatCurrency(totals.income, selectedCurrency)}</strong>
           </article>
           <article>
             <span>Kiadás</span>
-            <strong>{formatHuf(totals.expense)}</strong>
+            <strong>{formatCurrency(totals.expense, selectedCurrency)}</strong>
           </article>
           <article>
             <span>Különbözet</span>
-            <strong>{formatHuf(totals.income - totals.expense)}</strong>
+            <strong>
+              {formatCurrency(totals.income - totals.expense, selectedCurrency)}
+            </strong>
           </article>
           <article>
             <span>Tételek</span>
@@ -561,7 +642,7 @@ export function ReportsView({
                     style={{ background: donutBackground }}
                     aria-hidden="true"
                   >
-                    <span>{formatHuf(totals.expense)}</span>
+                    <span>{formatCurrency(totals.expense, selectedCurrency)}</span>
                   </div>
                   <div className="distribution-list">
                     {categoryDistribution.map((category) => (
@@ -573,7 +654,7 @@ export function ReportsView({
                         />
                         <strong>{category.name}</strong>
                         <span>
-                          {formatHuf(category.amount)} ·{' '}
+                          {formatCurrency(category.amount, selectedCurrency)} ·{' '}
                           {Math.round((category.amount / totals.expense) * 100)}%
                         </span>
                       </div>
@@ -590,7 +671,7 @@ export function ReportsView({
               <div className="trend-chart">
                 {trend.buckets.map((bucket) => (
                   <div className="trend-column" key={bucket.key}>
-                    <span>{formatHuf(bucket.amount)}</span>
+                    <span>{formatCurrency(bucket.amount, selectedCurrency)}</span>
                     <div>
                       <i
                         style={{
@@ -644,7 +725,12 @@ export function ReportsView({
                           <strong>{category?.name || 'Kategória nélkül'}</strong>
                           <small>{formatHungarianDate(transaction.transaction_date)}</small>
                         </span>
-                        <b>-{formatHuf(toNumber(transaction.amount))}</b>
+                        <b>
+                          -{formatCurrency(
+                            toNumber(transaction.amount),
+                            selectedCurrency,
+                          )}
+                        </b>
                       </button>
                     )
                   })}
@@ -669,6 +755,8 @@ export function ReportsView({
           userId={userId}
           account={account}
           categories={categories}
+          activeCurrencies={activeCurrencies}
+          defaultCurrency={defaultCurrency}
           onClose={() => setIsFormOpen(false)}
           onSaved={handleTransactionSaved}
         />
@@ -692,6 +780,7 @@ export function ReportsView({
           userId={userId}
           transaction={selectedTransaction}
           categories={categories}
+          activeCurrencies={activeCurrencies}
           onClose={() => setIsEditOpen(false)}
           onSaved={handleTransactionUpdated}
         />

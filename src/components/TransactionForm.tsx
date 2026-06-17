@@ -2,12 +2,14 @@ import { useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 import { formatLocalDateInput } from '../lib/date'
+import { normalizeCurrencyCode } from '../lib/currency'
 import { parseMoneyInput } from '../lib/money'
 import type {
   CashAccount,
   Category,
   TransactionFormValues,
   TransactionType,
+  UserCurrency,
 } from '../types/finance'
 import { MoneyInput } from './MoneyInput'
 
@@ -20,13 +22,16 @@ type TransactionFormProps = {
   userId: string
   account: CashAccount
   categories: Category[]
+  activeCurrencies: UserCurrency[]
+  defaultCurrency: string
   onClose: () => void
   onSaved: () => Promise<void>
 }
 
-const getInitialValues = (): TransactionFormValues => ({
+const getInitialValues = (defaultCurrency: string): TransactionFormValues => ({
   type: 'expense',
   amount: '',
+  currency: normalizeCurrencyCode(defaultCurrency),
   categoryId: '',
   transactionDate: formatLocalDateInput(new Date()),
   merchantName: '',
@@ -37,10 +42,14 @@ export function TransactionForm({
   userId,
   account,
   categories,
+  activeCurrencies,
+  defaultCurrency,
   onClose,
   onSaved,
 }: TransactionFormProps) {
-  const [values, setValues] = useState<TransactionFormValues>(getInitialValues)
+  const [values, setValues] = useState<TransactionFormValues>(() =>
+    getInitialValues(defaultCurrency),
+  )
   const [isSaving, setIsSaving] = useState(false)
   const [message, setMessage] = useState<Message | null>(null)
 
@@ -48,6 +57,33 @@ export function TransactionForm({
     () => categories.filter((category) => category.type === values.type),
     [categories, values.type],
   )
+
+  const currencyOptions = useMemo(() => {
+    const normalizedValue = normalizeCurrencyCode(values.currency)
+    const normalizedCurrencies = activeCurrencies.map((currency) => ({
+      ...currency,
+      currency_code: normalizeCurrencyCode(currency.currency_code),
+    }))
+
+    if (
+      normalizedCurrencies.some(
+        (currency) => currency.currency_code === normalizedValue,
+      )
+    ) {
+      return normalizedCurrencies
+    }
+
+    return [
+      {
+        id: normalizedValue,
+        user_id: userId,
+        currency_code: normalizedValue,
+        is_default: false,
+        is_active: true,
+      },
+      ...normalizedCurrencies,
+    ]
+  }, [activeCurrencies, userId, values.currency])
 
   const selectedCategoryId =
     values.categoryId &&
@@ -110,6 +146,7 @@ export function TransactionForm({
       category_id: selectedCategoryId,
       type: values.type,
       amount,
+      currency: normalizeCurrencyCode(values.currency),
       transaction_date: values.transactionDate,
       merchant_name: merchantName || null,
       note: note || null,
@@ -177,6 +214,22 @@ export function TransactionForm({
             onChange={(value) => updateField('amount', value)}
             required
           />
+
+          <label htmlFor="transactionCurrency">
+            Pénznem
+            <select
+              id="transactionCurrency"
+              value={values.currency}
+              onChange={(event) => updateField('currency', event.target.value)}
+              required
+            >
+              {currencyOptions.map((currency) => (
+                <option key={currency.id} value={currency.currency_code}>
+                  {currency.currency_code}
+                </option>
+              ))}
+            </select>
+          </label>
 
           <label htmlFor="transactionCategory">
             Kategória

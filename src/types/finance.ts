@@ -9,6 +9,15 @@ export type CashAccount = {
   is_active?: boolean | null
 }
 
+export type UserCurrency = {
+  id: string
+  user_id: string
+  currency_code: string
+  is_default: boolean
+  is_active: boolean
+  created_at?: string
+}
+
 export type Category = {
   id: string
   user_id?: string
@@ -25,6 +34,7 @@ export type Transaction = {
   category_id: string
   type: TransactionType
   amount: number | string
+  currency: string
   transaction_date: string
   merchant_name: string | null
   note: string | null
@@ -35,6 +45,7 @@ export type Transaction = {
 export type TransactionFormValues = {
   type: TransactionType
   amount: string
+  currency: string
   categoryId: string
   transactionDate: string
   merchantName: string

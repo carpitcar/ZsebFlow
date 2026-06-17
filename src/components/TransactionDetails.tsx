@@ -1,4 +1,4 @@
-import { formatHuf, toNumber } from '../lib/currency'
+import { formatCurrency, normalizeCurrencyCode, toNumber } from '../lib/currency'
 import { formatHungarianDate } from '../lib/date'
 import { normalizeCategoryColor } from '../lib/categoryColor'
 import type { Transaction } from '../types/finance'
@@ -57,8 +57,12 @@ export function TransactionDetails({
             <dt>Összeg</dt>
             <dd className={isIncome ? 'income-value' : 'expense-value'}>
               {isIncome ? '+' : '-'}
-              {formatHuf(toNumber(transaction.amount))}
+              {formatCurrency(toNumber(transaction.amount), transaction.currency)}
             </dd>
+          </div>
+          <div className="transaction-detail-row">
+            <dt>Pénznem</dt>
+            <dd>{normalizeCurrencyCode(transaction.currency)}</dd>
           </div>
           <div className="transaction-detail-row">
             <dt>Kategória</dt>

@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import { formatHuf, toNumber } from '../lib/currency'
+import { formatCurrency, toNumber } from '../lib/currency'
 import { formatHungarianDate } from '../lib/date'
 import { normalizeCategoryColor } from '../lib/categoryColor'
 import type { Transaction } from '../types/finance'
@@ -73,7 +73,7 @@ export function RecentTransactionList({
                 <span className="recent-transaction-side">
                   <strong>
                     {isIncome ? '+' : '-'}
-                    {formatHuf(amount)}
+                    {formatCurrency(amount, transaction.currency)}
                   </strong>
                   <span>{formatHungarianDate(transaction.transaction_date)}</span>
                 </span>

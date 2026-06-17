@@ -1,6 +1,6 @@
 import ExcelJS from 'exceljs'
 import { saveAs } from 'file-saver'
-import { toNumber } from './currency'
+import { normalizeCurrencyCode, toNumber } from './currency'
 import { formatPeriodLabel } from './date'
 import type { Transaction } from '../types/finance'
 
@@ -12,7 +12,7 @@ type ExportTransactionsOptions = {
 
 const parseLocalDate = (dateValue: string) => new Date(`${dateValue}T00:00:00`)
 
-const currencyFormat = '# ##0" Ft";-# ##0" Ft"'
+const numberFormat = '# ##0.00;-# ##0.00'
 
 export async function exportTransactionsXlsx({
   transactions,
@@ -30,13 +30,14 @@ export async function exportTransactionsXlsx({
     { header: 'Kategória', key: 'category', width: 24 },
     { header: 'Partner / üzlet', key: 'merchant', width: 26 },
     { header: 'Megjegyzés', key: 'note', width: 34 },
+    { header: 'Pénznem', key: 'currency', width: 12 },
     { header: 'Összeg', key: 'amount', width: 16 },
   ]
 
   transactionSheet.views = [{ state: 'frozen', ySplit: 1 }]
   transactionSheet.autoFilter = {
     from: 'A1',
-    to: 'F1',
+    to: 'G1',
   }
 
   const headerRow = transactionSheet.getRow(1)
@@ -51,6 +52,7 @@ export async function exportTransactionsXlsx({
   transactions.forEach((transaction) => {
     const amount = toNumber(transaction.amount)
     const signedAmount = transaction.type === 'income' ? amount : -amount
+    const currencyCode = normalizeCurrencyCode(transaction.currency)
 
     const row = transactionSheet.addRow({
       date: parseLocalDate(transaction.transaction_date),
@@ -58,28 +60,37 @@ export async function exportTransactionsXlsx({
       category: transaction.categories?.name ?? 'Kategória nélkül',
       merchant: transaction.merchant_name ?? '',
       note: transaction.note ?? '',
+      currency: currencyCode,
       amount: signedAmount,
     })
 
     row.getCell('date').numFmt = 'yyyy. mm. dd.'
-    row.getCell('amount').numFmt = currencyFormat
+    row.getCell('amount').numFmt = currencyCode === 'HUF' ? '# ##0' : numberFormat
   })
 
   const summarySheet = workbook.addWorksheet('Összesítő')
-  const totalIncome = transactions.reduce(
-    (total, transaction) =>
-      transaction.type === 'income'
-        ? total + toNumber(transaction.amount)
-        : total,
-    0,
+  const currencySummary = new Map(
+    transactions.map((transaction) => [
+      normalizeCurrencyCode(transaction.currency),
+      { income: 0, expense: 0, count: 0 },
+    ]),
   )
-  const totalExpense = transactions.reduce(
-    (total, transaction) =>
-      transaction.type === 'expense'
-        ? total + toNumber(transaction.amount)
-        : total,
-    0,
-  )
+  transactions.forEach((transaction) => {
+    const currencyCode = normalizeCurrencyCode(transaction.currency)
+    const summary = currencySummary.get(currencyCode) ?? {
+      income: 0,
+      expense: 0,
+      count: 0,
+    }
+
+    if (transaction.type === 'income') {
+      summary.income += toNumber(transaction.amount)
+    } else {
+      summary.expense += toNumber(transaction.amount)
+    }
+    summary.count += 1
+    currencySummary.set(currencyCode, summary)
+  })
 
   summarySheet.columns = [
     { key: 'label', width: 28 },
@@ -89,19 +100,31 @@ export async function exportTransactionsXlsx({
   ]
 
   summarySheet.addRow(['Időszak', formatPeriodLabel(dateFrom, dateTo)])
-  summarySheet.addRow(['Összes bevétel', totalIncome])
-  summarySheet.addRow(['Összes kiadás', totalExpense])
-  summarySheet.addRow(['Nettó különbség', totalIncome - totalExpense])
+  summarySheet.addRow(['Összesítés', 'Pénznem szerint'])
   summarySheet.addRow(['Tranzakciók száma', transactions.length])
   summarySheet.addRow([])
-  summarySheet.addRow(['Kategória', 'Típus', 'Összeg', 'Tranzakciók száma'])
+  summarySheet.addRow(['Pénznem', 'Bevétel', 'Kiadás', 'Különbözet', 'Tételek'])
+  Array.from(currencySummary.entries())
+    .sort(([leftCurrency], [rightCurrency]) =>
+      leftCurrency.localeCompare(rightCurrency),
+    )
+    .forEach(([currencyCode, summary]) => {
+      const row = summarySheet.addRow([
+        currencyCode,
+        summary.income,
+        summary.expense,
+        summary.income - summary.expense,
+        summary.count,
+      ])
+      row.getCell(2).numFmt = currencyCode === 'HUF' ? '# ##0' : numberFormat
+      row.getCell(3).numFmt = currencyCode === 'HUF' ? '# ##0' : numberFormat
+      row.getCell(4).numFmt = currencyCode === 'HUF' ? '# ##0' : numberFormat
+    })
+  summarySheet.addRow([])
+  summarySheet.addRow(['Kategória', 'Típus', 'Pénznem', 'Összeg', 'Tranzakciók száma'])
 
-  for (const rowNumber of [1, 2, 3, 4, 5, 7]) {
+  for (const rowNumber of [1, 2, 3, 5]) {
     summarySheet.getRow(rowNumber).font = { bold: true }
-  }
-
-  for (const rowNumber of [2, 3, 4]) {
-    summarySheet.getRow(rowNumber).getCell(2).numFmt = currencyFormat
   }
 
   const categorySummary = new Map<
@@ -109,6 +132,7 @@ export async function exportTransactionsXlsx({
     {
       category: string
       type: string
+      currency: string
       amount: number
       count: number
     }
@@ -117,12 +141,14 @@ export async function exportTransactionsXlsx({
   transactions.forEach((transaction) => {
     const typeLabel = transaction.type === 'income' ? 'Bevétel' : 'Kiadás'
     const categoryName = transaction.categories?.name ?? 'Kategória nélkül'
-    const key = `${transaction.type}:${categoryName}`
+    const currencyCode = normalizeCurrencyCode(transaction.currency)
+    const key = `${transaction.type}:${currencyCode}:${categoryName}`
     const currentSummary =
       categorySummary.get(key) ??
       {
         category: categoryName,
         type: typeLabel,
+        currency: currencyCode,
         amount: 0,
         count: 0,
       }
@@ -149,18 +175,14 @@ export async function exportTransactionsXlsx({
       const row = summarySheet.addRow([
         summary.category,
         summary.type,
+        summary.currency,
         summary.amount,
         summary.count,
       ])
-      row.getCell(3).numFmt = currencyFormat
+      row.getCell(4).numFmt = summary.currency === 'HUF' ? '# ##0' : numberFormat
     })
 
-  summarySheet.getRow(7).fill = {
-    type: 'pattern',
-    pattern: 'solid',
-    fgColor: { argb: 'FFE2E8F0' },
-  }
-  summarySheet.views = [{ state: 'frozen', ySplit: 7 }]
+  summarySheet.views = [{ state: 'frozen', ySplit: 5 }]
 
   const buffer = await workbook.xlsx.writeBuffer()
   const fileName = `ZsebFlow_${dateFrom}_${dateTo}.xlsx`
