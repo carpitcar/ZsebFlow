@@ -2,7 +2,8 @@
   width: 100%;
   min-height: 100svh;
   display: grid;
-  place-items: center;
+  align-items: start;
+  justify-items: center;
   padding: 24px 24px calc(112px + env(safe-area-inset-bottom));
   box-sizing: border-box;
 }

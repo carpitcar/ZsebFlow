@@ -111,6 +111,7 @@
 
 body {
   min-width: 320px;
+  min-height: 100dvh;
   margin: 0;
   background:
     linear-gradient(135deg, var(--accent-soft), transparent 38%),
@@ -146,7 +147,8 @@ h2 {
 }
 
 #root {
-  min-height: 100svh;
+  width: 100%;
+  min-height: 100dvh;
 }
 
 @media (max-width: 520px) {
