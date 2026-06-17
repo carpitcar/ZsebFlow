@@ -19,6 +19,8 @@ export function HomeDashboard({
 }: HomeDashboardProps) {
   return (
     <div className="home-dashboard">
+      <h1 className="home-brand-title">ZsebFlow</h1>
+
       <MonthSwitcher
         label={activePeriodHeading}
         onPrevious={() => onMonthChange(-1)}

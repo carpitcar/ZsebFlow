@@ -330,6 +330,16 @@ button:focus-visible {
   min-height: calc(100svh - 132px);
 }
 
+.home-brand-title {
+  color: var(--accent);
+  font-size: 26px;
+  font-weight: 850;
+  line-height: 1.05;
+  margin: 0;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+
 .month-switcher {
   display: grid;
   grid-template-columns: 40px minmax(0, 1fr) 40px;
@@ -1163,7 +1173,11 @@ button.metric-card {
 
   .home-dashboard {
     min-height: calc(100svh - 116px);
-    gap: 12px;
+    gap: 10px;
+  }
+
+  .home-brand-title {
+    font-size: 25px;
   }
 
   .month-switcher {
