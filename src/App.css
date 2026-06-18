@@ -1023,28 +1023,34 @@ button.metric-card {
 
 .transaction-wizard-panel {
   width: min(100%, 500px);
-  gap: 16px;
-  padding: 20px;
+  overflow: hidden;
+  gap: 0;
+  padding: 18px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--accent-soft) 38%, transparent), transparent 34%),
+    var(--surface);
 }
 
 .wizard-header {
   display: grid;
   grid-template-columns: 40px minmax(0, 1fr) 40px;
-  align-items: start;
+  align-items: center;
   gap: 8px;
+  padding-bottom: 10px;
 }
 
 .wizard-heading {
   min-width: 0;
   display: grid;
   justify-items: center;
-  gap: 8px;
+  gap: 6px;
   text-align: center;
 }
 
 .wizard-heading h2 {
   margin: 0;
-  font-size: 22px;
+  font-size: 21px;
+  line-height: 1.15;
 }
 
 .wizard-back-button,
@@ -1058,15 +1064,16 @@ button.metric-card {
 .wizard-close-button {
   display: grid;
   place-items: center;
-  border: 1px solid var(--border-strong);
-  border-radius: 8px;
-  background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--border-strong) 68%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 84%, var(--control-bg));
   color: var(--text-strong);
   cursor: pointer;
   font: inherit;
   font-size: 24px;
   line-height: 1;
   padding: 0;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
 }
 
 .wizard-close-button {
@@ -1076,24 +1083,30 @@ button.metric-card {
 
 .wizard-back-button:hover:not(:disabled),
 .wizard-close-button:hover:not(:disabled) {
-  background: var(--control-bg);
+  border-color: var(--accent);
+  background: var(--surface);
+  transform: translateY(-1px);
 }
 
 .wizard-progress {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 5px;
+  border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
   color: var(--muted);
   font-size: 12px;
   font-weight: 750;
+  padding: 4px 8px;
 }
 
 .wizard-progress-dot {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   border-radius: 999px;
-  background: var(--border-strong);
+  background: color-mix(in srgb, var(--border-strong) 72%, transparent);
 }
 
 .wizard-progress-dot.complete {
@@ -1101,7 +1114,7 @@ button.metric-card {
 }
 
 .wizard-progress-dot.active {
-  width: 18px;
+  width: 16px;
   background: var(--accent);
 }
 
@@ -1116,59 +1129,125 @@ button.metric-card {
 }
 
 .transaction-wizard-form {
-  gap: 12px;
+  min-height: 440px;
+  align-content: start;
+  gap: 10px;
+  overflow: auto;
+  padding: 4px 2px 2px;
 }
 
 .wizard-step {
-  gap: 14px;
+  gap: 13px;
+  align-content: start;
+}
+
+.wizard-type-step {
+  min-height: 382px;
+  align-content: center;
+  justify-items: center;
+  padding: 12px 0 22px;
 }
 
 .wizard-question {
   margin: 0;
   color: var(--text-strong);
-  font-size: 17px;
-  font-weight: 750;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.25;
   text-align: center;
 }
 
 .wizard-type-grid {
+  width: min(100%, 390px);
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 12px;
+  margin-top: 4px;
 }
 
-.wizard-type-grid button {
+.wizard-type-card {
   min-width: 0;
-  min-height: 86px;
+  min-height: 152px;
   display: grid;
   place-items: center;
-  gap: 8px;
-  border: 1px solid var(--border-strong);
-  border-radius: 8px;
-  background: var(--surface);
+  align-content: center;
+  gap: 12px;
+  border: 1px solid color-mix(in srgb, var(--border-strong) 76%, transparent);
+  border-radius: 26px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.52), transparent),
+    color-mix(in srgb, var(--surface) 88%, var(--control-bg));
   color: var(--text-strong);
   cursor: pointer;
   font: inherit;
   font-weight: 800;
-  padding: 12px;
+  padding: 18px 14px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.38),
+    0 12px 32px rgba(15, 23, 42, 0.08);
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease;
 }
 
-.wizard-type-grid button.active,
-.wizard-type-grid button:hover {
+.wizard-type-card.expense {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.6), transparent),
+    color-mix(in srgb, #fee2e2 34%, var(--surface));
+}
+
+.wizard-type-card.income {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.6), transparent),
+    color-mix(in srgb, #dcfce7 34%, var(--surface));
+}
+
+.wizard-type-card:hover,
+.wizard-type-card:focus-visible,
+.wizard-type-card.active {
   border-color: var(--accent);
-  background: var(--accent-soft);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.68), transparent),
+    var(--accent-soft);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.48),
+    0 18px 42px rgba(15, 23, 42, 0.13);
+  transform: translateY(-2px);
+}
+
+.wizard-type-card:active {
+  transform: translateY(0);
 }
 
 .wizard-type-symbol {
-  width: 32px;
-  height: 32px;
+  width: 54px;
+  height: 54px;
   display: grid;
   place-items: center;
   border-radius: 999px;
-  background: var(--control-bg);
+  background: rgba(255, 255, 255, 0.72);
   color: var(--accent);
-  font-size: 22px;
+  font-size: 30px;
+  font-weight: 850;
   line-height: 1;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.78),
+    0 10px 22px rgba(15, 23, 42, 0.08);
+}
+
+.wizard-type-card.expense .wizard-type-symbol {
+  color: #dc2626;
+}
+
+.wizard-type-card.income .wizard-type-symbol {
+  color: #059669;
+}
+
+.wizard-type-label {
+  font-size: 18px;
+  line-height: 1.1;
 }
 
 .wizard-selected-type {
@@ -1178,6 +1257,24 @@ button.metric-card {
   padding: 5px 10px;
   font-size: 13px;
   font-weight: 800;
+}
+
+.transaction-wizard-form label {
+  gap: 7px;
+}
+
+.transaction-wizard-form input,
+.transaction-wizard-form select,
+.transaction-wizard-form textarea {
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface) 88%, var(--control-bg));
+  border-color: color-mix(in srgb, var(--border-strong) 76%, transparent);
+}
+
+.transaction-wizard-form input:focus,
+.transaction-wizard-form select:focus,
+.transaction-wizard-form textarea:focus {
+  background: var(--surface);
 }
 
 .wizard-selected-type.expense {
@@ -1230,9 +1327,9 @@ button.metric-card {
 .wizard-payment-grid button,
 .wizard-category-list button {
   min-width: 0;
-  border: 1px solid var(--border-strong);
-  border-radius: 8px;
-  background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--border-strong) 76%, transparent);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface) 88%, var(--control-bg));
   color: var(--text-strong);
   cursor: pointer;
   font: inherit;
@@ -1250,6 +1347,7 @@ button.metric-card {
   border-color: var(--accent);
   background: var(--accent-soft);
   color: var(--text-strong);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
 }
 
 .wizard-category-list {
@@ -1266,8 +1364,8 @@ button.metric-card {
   grid-template-columns: 34px minmax(0, 1fr);
   align-items: center;
   gap: 10px;
-  min-height: 46px;
-  padding: 7px 10px;
+  min-height: 48px;
+  padding: 8px 11px;
   text-align: left;
   font-weight: 750;
 }
@@ -1286,7 +1384,7 @@ button.metric-card {
   height: 30px;
   display: grid;
   place-items: center;
-  border-radius: 8px;
+  border-radius: 12px;
   color: #ffffff;
   font-size: 16px;
   font-weight: 800;
@@ -1299,17 +1397,20 @@ button.metric-card {
 }
 
 .wizard-primary-button {
+  min-height: 48px;
   margin-top: 2px;
+  border-radius: 16px;
+  box-shadow: 0 14px 28px color-mix(in srgb, var(--accent) 24%, transparent);
 }
 
 .wizard-summary {
   display: grid;
   gap: 7px;
   margin: 2px 0 0;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--control-bg);
-  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--border) 76%, transparent);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--surface) 72%, var(--control-bg));
+  padding: 12px;
 }
 
 .wizard-summary div {
@@ -2877,24 +2978,24 @@ button.settings-row {
 
   .transaction-wizard-panel {
     max-height: 100svh;
-    min-height: min(100svh, 680px);
-    border-radius: 8px 8px 0 0;
-    padding: 12px 14px max(14px, env(safe-area-inset-bottom));
-    gap: 12px;
+    min-height: 100svh;
+    border-radius: 20px 20px 0 0;
+    padding: 10px 14px max(14px, env(safe-area-inset-bottom));
+    gap: 0;
   }
 
   .wizard-header {
     position: sticky;
     top: 0;
     z-index: 1;
-    margin: -12px -14px 0;
-    border-bottom: 1px solid var(--border);
-    background: var(--surface);
-    padding: 10px 14px;
+    margin: -10px -14px 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+    background: color-mix(in srgb, var(--surface) 92%, transparent);
+    padding: 10px 14px 9px;
   }
 
   .wizard-heading h2 {
-    font-size: 19px;
+    font-size: 18px;
   }
 
   .wizard-back-button,
@@ -2908,23 +3009,40 @@ button.settings-row {
     font-size: 16px;
   }
 
+  .transaction-wizard-form {
+    min-height: calc(100svh - 88px - env(safe-area-inset-bottom));
+    padding-top: 2px;
+  }
+
   .wizard-step {
     gap: 12px;
   }
 
-  .wizard-type-grid {
-    gap: 8px;
+  .wizard-type-step {
+    min-height: calc(100svh - 128px - env(safe-area-inset-bottom));
+    padding: 0 0 24px;
   }
 
-  .wizard-type-grid button {
-    min-height: 78px;
-    gap: 7px;
-    padding: 10px 8px;
+  .wizard-type-grid {
+    width: min(100%, 372px);
+    gap: 10px;
+  }
+
+  .wizard-type-card {
+    min-height: 140px;
+    border-radius: 24px;
+    gap: 11px;
+    padding: 16px 10px;
   }
 
   .wizard-type-symbol {
-    width: 30px;
-    height: 30px;
+    width: 50px;
+    height: 50px;
+    font-size: 28px;
+  }
+
+  .wizard-type-label {
+    font-size: 17px;
   }
 
   .wizard-payment-grid {
@@ -2932,7 +3050,8 @@ button.settings-row {
   }
 
   .wizard-payment-grid button {
-    min-height: 40px;
+    min-height: 42px;
+    border-radius: 14px;
     padding: 7px 5px;
     font-size: 12px;
   }
@@ -2943,10 +3062,11 @@ button.settings-row {
   }
 
   .wizard-category-list button {
-    min-height: 42px;
+    min-height: 44px;
     grid-template-columns: 30px minmax(0, 1fr);
     gap: 8px;
-    padding: 6px 8px;
+    border-radius: 14px;
+    padding: 7px 9px;
   }
 
   .wizard-category-icon {
@@ -2956,7 +3076,8 @@ button.settings-row {
   }
 
   .wizard-primary-button {
-    min-height: 44px;
+    min-height: 46px;
+    border-radius: 15px;
   }
 
   .wizard-summary {

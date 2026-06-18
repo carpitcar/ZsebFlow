@@ -312,7 +312,10 @@ export function TransactionWizard({
 
         <form className="transaction-wizard-form" onSubmit={handleSubmit}>
           {step === 1 ? (
-            <section className="wizard-step" aria-label="Tranzakció típusa">
+            <section
+              className="wizard-step wizard-type-step"
+              aria-label="Tranzakció típusa"
+            >
               <p className="wizard-question">
                 Milyen tételt szeretnél rögzíteni?
               </p>
@@ -321,14 +324,22 @@ export function TransactionWizard({
                   <button
                     key={type}
                     type="button"
-                    className={values.type === type ? 'active' : ''}
+                    className={[
+                      'wizard-type-card',
+                      type,
+                      values.type === type ? 'active' : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
                     onClick={() => handleTypeSelect(type)}
                     aria-pressed={values.type === type}
                   >
                     <span className="wizard-type-symbol">
                       {type === 'expense' ? '-' : '+'}
                     </span>
-                    <span>{transactionTypeLabels[type]}</span>
+                    <span className="wizard-type-label">
+                      {transactionTypeLabels[type]}
+                    </span>
                   </button>
                 ))}
               </div>
