@@ -8,6 +8,10 @@
   box-sizing: border-box;
 }
 
+body.wizard-keyboard-open .app-shell {
+  padding-bottom: 24px;
+}
+
 .app-shell:has(.finance-dashboard) {
   align-items: start;
   justify-items: center;
@@ -576,6 +580,10 @@ button:focus-visible {
   transform: translateX(-50%);
 }
 
+body.wizard-keyboard-open .mobile-bottom-nav {
+  display: none;
+}
+
 .mobile-bottom-nav button {
   min-width: 0;
   min-height: 50px;
@@ -1023,6 +1031,7 @@ button.metric-card {
 
 .transaction-wizard-panel {
   width: min(100%, 500px);
+  max-height: min(calc(100svh - 40px), var(--visual-viewport-height, 100dvh));
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -1034,6 +1043,7 @@ button.metric-card {
 }
 
 .wizard-header {
+  flex: 0 0 auto;
   display: grid;
   grid-template-columns: 40px minmax(0, 1fr) 40px;
   align-items: center;
@@ -1141,7 +1151,7 @@ button.metric-card {
   flex: 1;
   min-height: 0;
   display: grid;
-  min-height: 440px;
+  min-height: min(440px, calc(var(--visual-viewport-height, 100dvh) - 150px));
   align-content: start;
   gap: 10px;
   overflow: auto;
@@ -1440,9 +1450,9 @@ button.metric-card {
   background:
     linear-gradient(
       to top,
-      var(--surface) 74%,
-      color-mix(in srgb, var(--surface) 72%, transparent) 88%,
-      transparent
+      var(--surface) 0%,
+      var(--surface) 78%,
+      color-mix(in srgb, var(--surface) 90%, transparent) 100%
     );
 }
 
@@ -3020,21 +3030,32 @@ button.settings-row {
   }
 
   .transaction-wizard-panel {
-    height: var(--wizard-viewport-height, 100dvh);
-    max-height: var(--wizard-viewport-height, 100dvh);
+    height: var(--visual-viewport-height, 100dvh);
+    max-height: var(--visual-viewport-height, 100dvh);
     min-height: 0;
     border-radius: 20px 20px 0 0;
-    padding: 10px 14px max(14px, env(safe-area-inset-bottom));
+    padding: 10px 14px 0;
     gap: 0;
   }
 
+  .modal-backdrop:has(.transaction-wizard-panel) {
+    top: var(--visual-viewport-offset-top, 0px);
+    bottom: auto;
+    height: var(--visual-viewport-height, 100dvh);
+    align-items: end;
+    overflow: hidden;
+  }
+
+  .transaction-wizard-panel.is-keyboard-open {
+    border-radius: 0;
+  }
+
   .wizard-header {
-    position: sticky;
-    top: 0;
+    position: relative;
     z-index: 1;
     margin: -10px -14px 0;
     border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
-    background: color-mix(in srgb, var(--surface) 92%, transparent);
+    background: var(--surface);
     padding: 10px 14px 9px;
   }
 
@@ -3055,8 +3076,8 @@ button.settings-row {
 
   .transaction-wizard-content {
     min-height: 0;
-    padding: 2px 0 14px;
-    scroll-padding-bottom: calc(78px + env(safe-area-inset-bottom));
+    padding: 2px 0 18px;
+    scroll-padding-bottom: calc(92px + env(safe-area-inset-bottom));
   }
 
   .transaction-wizard-form.is-type-step .transaction-wizard-content {
@@ -3070,7 +3091,7 @@ button.settings-row {
 
   .wizard-type-step {
     min-height: calc(
-      var(--wizard-viewport-height, 100dvh) - 128px - env(safe-area-inset-bottom)
+      var(--visual-viewport-height, 100dvh) - 128px - env(safe-area-inset-bottom)
     );
     padding: 0 0 24px;
   }
@@ -3133,15 +3154,19 @@ button.settings-row {
   }
 
   .wizard-footer {
-    margin: 0 -14px calc(-1 * max(14px, env(safe-area-inset-bottom)));
-    padding: 18px 14px max(14px, env(safe-area-inset-bottom));
+    margin: 0 -14px;
+    padding: 14px 14px max(14px, env(safe-area-inset-bottom));
     background:
       linear-gradient(
         to top,
-        var(--surface) 72%,
-        color-mix(in srgb, var(--surface) 82%, transparent) 90%,
-        transparent
+        var(--surface) 0%,
+        var(--surface) 78%,
+        color-mix(in srgb, var(--surface) 94%, transparent) 100%
       );
+  }
+
+  .transaction-wizard-panel.is-keyboard-open .wizard-footer {
+    padding-bottom: 14px;
   }
 
   .wizard-summary {

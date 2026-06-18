@@ -8,6 +8,7 @@ import type {
 import { formatCurrency, normalizeCurrencyCode } from '../lib/currency'
 import { formatLocalDateInput } from '../lib/date'
 import { parseMoneyInput } from '../lib/money'
+import { useVisualViewport } from '../hooks/useVisualViewport'
 import {
   getPaymentMethodLabel,
   normalizePaymentMethod,
@@ -76,29 +77,29 @@ export function TransactionWizard({
   const isSavingRef = useRef(false)
   const hasCompletedSaveRef = useRef(false)
   const savePointerIntentRef = useRef(false)
+  const visualViewport = useVisualViewport()
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !window.visualViewport) {
-      return
-    }
-
-    const updateViewportHeight = () => {
-      document.documentElement.style.setProperty(
-        '--wizard-viewport-height',
-        `${window.visualViewport?.height ?? window.innerHeight}px`,
-      )
-    }
-
-    updateViewportHeight()
-    window.visualViewport.addEventListener('resize', updateViewportHeight)
-    window.visualViewport.addEventListener('scroll', updateViewportHeight)
+    document.body.classList.toggle(
+      'wizard-keyboard-open',
+      visualViewport.isKeyboardOpen,
+    )
 
     return () => {
-      window.visualViewport?.removeEventListener('resize', updateViewportHeight)
-      window.visualViewport?.removeEventListener('scroll', updateViewportHeight)
-      document.documentElement.style.removeProperty('--wizard-viewport-height')
+      document.body.classList.remove('wizard-keyboard-open')
     }
-  }, [])
+  }, [visualViewport.isKeyboardOpen])
+
+  const wizardViewportStyle = useMemo<CSSProperties>(
+    () =>
+      ({
+        '--visual-viewport-height': visualViewport.height
+          ? `${visualViewport.height}px`
+          : '100dvh',
+        '--visual-viewport-offset-top': `${visualViewport.offsetTop}px`,
+      }) as CSSProperties,
+    [visualViewport.height, visualViewport.offsetTop],
+  )
 
   const matchingCategories = useMemo(
     () => categories.filter((category) => category.type === values.type),
@@ -365,7 +366,7 @@ export function TransactionWizard({
 
     window.setTimeout(() => {
       target.scrollIntoView({ block: 'center', behavior: 'smooth' })
-    }, 80)
+    }, visualViewport.isKeyboardOpen ? 180 : 260)
   }
 
   const renderBackButton = () =>
@@ -431,9 +432,18 @@ export function TransactionWizard({
   }
 
   return (
-    <div className="modal-backdrop" role="presentation">
+    <div
+      className="modal-backdrop"
+      role="presentation"
+      style={wizardViewportStyle}
+    >
       <section
-        className="modal-panel transaction-wizard-panel"
+        className={[
+          'modal-panel transaction-wizard-panel',
+          visualViewport.isKeyboardOpen ? 'is-keyboard-open' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
         role="dialog"
         aria-modal="true"
         aria-labelledby="transactionWizardTitle"
