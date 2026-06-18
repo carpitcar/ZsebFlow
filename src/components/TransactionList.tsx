@@ -52,6 +52,17 @@ function PaymentMethodIcon({
     )
   }
 
+  if (paymentMethod === 'revolut') {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <rect x="7" y="3.8" width="10" height="16.4" rx="2" fill="none" />
+        <path d="M10.2 6.8h3.6" />
+        <path d="M10.4 10h2.3a1.9 1.9 0 0 1 0 3.8h-2.3" />
+        <path d="M10.4 13.8 14 18" />
+      </svg>
+    )
+  }
+
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24">
       <path d="M6 7h12v10H6z" fill="none" />

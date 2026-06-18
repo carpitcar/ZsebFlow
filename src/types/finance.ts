@@ -18,7 +18,12 @@ export type UserCurrency = {
   created_at?: string
 }
 
-export type PaymentMethod = 'unknown' | 'card' | 'cash' | 'bank_transfer'
+export type PaymentMethod =
+  | 'unknown'
+  | 'card'
+  | 'cash'
+  | 'bank_transfer'
+  | 'revolut'
 
 export type Category = {
   id: string

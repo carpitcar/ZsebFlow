@@ -1,4 +1,9 @@
-export type PaymentMethod = 'unknown' | 'card' | 'cash' | 'bank_transfer'
+export type PaymentMethod =
+  | 'unknown'
+  | 'card'
+  | 'cash'
+  | 'bank_transfer'
+  | 'revolut'
 
 export type PaymentMethodFilter = 'all' | PaymentMethod
 
@@ -7,6 +12,7 @@ export const paymentMethodLabels: Record<PaymentMethod, string> = {
   card: 'Bankkártya',
   cash: 'Készpénz',
   bank_transfer: 'Banki utalás',
+  revolut: 'Revolut',
 }
 
 export const paymentMethodOptions: Array<{
@@ -16,6 +22,7 @@ export const paymentMethodOptions: Array<{
   { value: 'card', label: paymentMethodLabels.card },
   { value: 'cash', label: paymentMethodLabels.cash },
   { value: 'bank_transfer', label: paymentMethodLabels.bank_transfer },
+  { value: 'revolut', label: paymentMethodLabels.revolut },
 ]
 
 export const paymentMethodFilterOptions: Array<{
@@ -26,6 +33,7 @@ export const paymentMethodFilterOptions: Array<{
   { value: 'card', label: paymentMethodLabels.card },
   { value: 'cash', label: paymentMethodLabels.cash },
   { value: 'bank_transfer', label: paymentMethodLabels.bank_transfer },
+  { value: 'revolut', label: paymentMethodLabels.revolut },
 ]
 
 export const normalizePaymentMethod = (
@@ -35,7 +43,8 @@ export const normalizePaymentMethod = (
     paymentMethod === 'unknown' ||
     paymentMethod === 'card' ||
     paymentMethod === 'cash' ||
-    paymentMethod === 'bank_transfer'
+    paymentMethod === 'bank_transfer' ||
+    paymentMethod === 'revolut'
   ) {
     return paymentMethod
   }
