@@ -73,6 +73,7 @@ export function TransactionWizard({
     getInitialValues(defaultCurrency),
   )
   const [isSaving, setIsSaving] = useState(false)
+  const [isCategoryPickerOpen, setIsCategoryPickerOpen] = useState(false)
   const [message, setMessage] = useState<Message | null>(null)
   const isSavingRef = useRef(false)
   const hasCompletedSaveRef = useRef(false)
@@ -208,6 +209,7 @@ export function TransactionWizard({
 
   const handleTypeSelect = (type: TransactionType) => {
     setMessage(null)
+    setIsCategoryPickerOpen(false)
     updateField('type', type)
     setStep(2)
   }
@@ -228,6 +230,7 @@ export function TransactionWizard({
 
   const handleDetailsNext = () => {
     setMessage(null)
+    setIsCategoryPickerOpen(false)
 
     if (!values.paymentMethod) {
       setMessage({
@@ -501,6 +504,11 @@ export function TransactionWizard({
     return null
   }
 
+  const handleCategorySelect = (categoryId: string) => {
+    updateField('categoryId', categoryId)
+    setIsCategoryPickerOpen(false)
+  }
+
   return (
     <div
       className="modal-backdrop"
@@ -657,28 +665,82 @@ export function TransactionWizard({
 
                 <div className="wizard-field-group">
                   <span className="wizard-field-label">Kategória</span>
-                  <div className="wizard-category-list">
-                    {matchingCategories.map((category) => (
-                      <button
-                        key={category.id}
-                        type="button"
-                        className={
-                          selectedCategoryId === category.id ? 'active' : ''
-                        }
-                        onClick={() => updateField('categoryId', category.id)}
-                        aria-pressed={selectedCategoryId === category.id}
-                        style={{ '--category-color': category.color } as CSSProperties}
+                  <button
+                    className={[
+                      'wizard-category-select',
+                      selectedCategory ? 'has-selection' : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                    type="button"
+                    onClick={() =>
+                      setIsCategoryPickerOpen((isOpen) => !isOpen)
+                    }
+                    aria-expanded={isCategoryPickerOpen}
+                    aria-controls="transactionCategoryPicker"
+                    disabled={matchingCategories.length === 0}
+                    style={
+                      {
+                        '--category-color':
+                          selectedCategory?.color ?? 'var(--border-strong)',
+                      } as CSSProperties
+                    }
+                  >
+                    {selectedCategory ? (
+                      <span
+                        className="wizard-category-icon"
+                        style={{ backgroundColor: selectedCategory.color }}
+                        aria-hidden="true"
                       >
-                        <span
-                          className="wizard-category-icon"
-                          style={{ backgroundColor: category.color }}
+                        {selectedCategory.icon || '•'}
+                      </span>
+                    ) : null}
+                    <span className="wizard-category-select-text">
+                      {selectedCategory?.name ?? 'Válassz kategóriát'}
+                    </span>
+                    <span className="wizard-category-chevron" aria-hidden="true">
+                      ›
+                    </span>
+                  </button>
+
+                  {matchingCategories.length === 0 ? (
+                    <p className="wizard-category-empty" role="status">
+                      Még nincs használható kategória.
+                    </p>
+                  ) : null}
+
+                  {isCategoryPickerOpen ? (
+                    <div
+                      className="wizard-category-picker"
+                      id="transactionCategoryPicker"
+                    >
+                      {matchingCategories.map((category) => (
+                        <button
+                          key={category.id}
+                          type="button"
+                          className={
+                            selectedCategoryId === category.id ? 'active' : ''
+                          }
+                          onClick={() => handleCategorySelect(category.id)}
+                          aria-pressed={selectedCategoryId === category.id}
+                          style={
+                            {
+                              '--category-color': category.color,
+                            } as CSSProperties
+                          }
                         >
-                          {category.icon || '•'}
-                        </span>
-                        <span>{category.name}</span>
-                      </button>
-                    ))}
-                  </div>
+                          <span
+                            className="wizard-category-icon"
+                            style={{ backgroundColor: category.color }}
+                            aria-hidden="true"
+                          >
+                            {category.icon || '•'}
+                          </span>
+                          <span>{category.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
 
                 <label htmlFor="transactionDate">

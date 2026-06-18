@@ -1421,7 +1421,8 @@ button.metric-card {
 }
 
 .wizard-payment-grid button,
-.wizard-category-list button {
+.wizard-category-select,
+.wizard-category-picker button {
   min-width: 0;
   border: 1px solid color-mix(in srgb, var(--border-strong) 76%, transparent);
   border-radius: 16px;
@@ -1446,16 +1447,75 @@ button.metric-card {
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
 }
 
-.wizard-category-list {
-  max-height: 210px;
-  overflow: auto;
+.wizard-category-select {
+  width: 100%;
   display: grid;
-  gap: 8px;
-  min-width: 0;
-  padding-right: 2px;
+  grid-template-columns: minmax(0, 1fr) 20px;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 9px 11px;
+  text-align: left;
+  font-weight: 750;
 }
 
-.wizard-category-list button {
+.wizard-category-select.has-selection {
+  grid-template-columns: 34px minmax(0, 1fr) 20px;
+  border-color: color-mix(
+    in srgb,
+    var(--category-color, var(--accent)) 45%,
+    var(--border)
+  );
+  background: color-mix(
+    in srgb,
+    var(--category-color, var(--accent)) 10%,
+    var(--surface)
+  );
+}
+
+.wizard-category-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.68;
+}
+
+.wizard-category-select-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wizard-category-chevron {
+  color: var(--muted);
+  font-size: 22px;
+  line-height: 1;
+  justify-self: end;
+}
+
+.wizard-category-empty {
+  margin: 0;
+  border: 1px dashed color-mix(in srgb, var(--border-strong) 78%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--control-bg) 62%, transparent);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 650;
+  padding: 10px 12px;
+}
+
+.wizard-category-picker {
+  max-height: min(34svh, 240px);
+  overflow: auto;
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  border: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--surface) 82%, var(--control-bg));
+  padding: 8px;
+}
+
+.wizard-category-picker button {
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr);
   align-items: center;
@@ -1466,7 +1526,7 @@ button.metric-card {
   font-weight: 750;
 }
 
-.wizard-category-list button.active {
+.wizard-category-picker button.active {
   border-color: var(--category-color, var(--accent));
   background: color-mix(
     in srgb,
@@ -1486,7 +1546,7 @@ button.metric-card {
   font-weight: 800;
 }
 
-.wizard-category-list button span:last-child {
+.wizard-category-picker button span:last-child {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -3217,12 +3277,12 @@ button.settings-row {
     font-size: 12px;
   }
 
-  .wizard-category-list {
-    max-height: min(32svh, 180px);
+  .wizard-category-picker {
+    max-height: min(32svh, 190px);
     gap: 7px;
   }
 
-  .wizard-category-list button {
+  .wizard-category-picker button {
     min-height: 44px;
     grid-template-columns: 30px minmax(0, 1fr);
     gap: 8px;
