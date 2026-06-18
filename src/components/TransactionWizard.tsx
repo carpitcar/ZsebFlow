@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import type { CSSProperties, FormEvent } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import type { CSSProperties, FocusEvent, FormEvent } from 'react'
 import { formatCurrency, normalizeCurrencyCode } from '../lib/currency'
 import { formatLocalDateInput } from '../lib/date'
 import { parseMoneyInput } from '../lib/money'
@@ -68,6 +68,29 @@ export function TransactionWizard({
   )
   const [isSaving, setIsSaving] = useState(false)
   const [message, setMessage] = useState<Message | null>(null)
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.visualViewport) {
+      return
+    }
+
+    const updateViewportHeight = () => {
+      document.documentElement.style.setProperty(
+        '--wizard-viewport-height',
+        `${window.visualViewport?.height ?? window.innerHeight}px`,
+      )
+    }
+
+    updateViewportHeight()
+    window.visualViewport.addEventListener('resize', updateViewportHeight)
+    window.visualViewport.addEventListener('scroll', updateViewportHeight)
+
+    return () => {
+      window.visualViewport?.removeEventListener('resize', updateViewportHeight)
+      window.visualViewport?.removeEventListener('scroll', updateViewportHeight)
+      document.documentElement.style.removeProperty('--wizard-viewport-height')
+    }
+  }, [])
 
   const matchingCategories = useMemo(
     () => categories.filter((category) => category.type === values.type),
@@ -285,6 +308,63 @@ export function TransactionWizard({
       <span className="wizard-header-spacer" />
     )
 
+  const handleControlFocus = (event: FocusEvent<HTMLFormElement>) => {
+    const target = event.target
+
+    if (
+      !(target instanceof HTMLElement) ||
+      !target.matches('input, select, textarea')
+    ) {
+      return
+    }
+
+    window.setTimeout(() => {
+      target.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    }, 80)
+  }
+
+  const renderPrimaryAction = () => {
+    if (step === 2) {
+      return (
+        <button
+          className="primary-button wizard-primary-button"
+          type="button"
+          onClick={handleAmountNext}
+          disabled={!isAmountValid}
+        >
+          Tovább
+        </button>
+      )
+    }
+
+    if (step === 3) {
+      return (
+        <button
+          className="primary-button wizard-primary-button"
+          type="button"
+          onClick={handleDetailsNext}
+          disabled={!canContinueDetails}
+        >
+          Tovább
+        </button>
+      )
+    }
+
+    if (step === 4) {
+      return (
+        <button
+          className="primary-button wizard-primary-button"
+          type="submit"
+          disabled={isSaving}
+        >
+          {isSaving ? 'Mentés...' : 'Mentés'}
+        </button>
+      )
+    }
+
+    return null
+  }
+
   return (
     <div className="modal-backdrop" role="presentation">
       <section
@@ -310,220 +390,207 @@ export function TransactionWizard({
           </button>
         </div>
 
-        <form className="transaction-wizard-form" onSubmit={handleSubmit}>
-          {step === 1 ? (
-            <section
-              className="wizard-step wizard-type-step"
-              aria-label="Tranzakció típusa"
-            >
-              <p className="wizard-question">
-                Milyen tételt szeretnél rögzíteni?
-              </p>
-              <div className="wizard-type-grid">
-                {(['income', 'expense'] as TransactionType[]).map((type) => (
-                  <button
-                    key={type}
-                    type="button"
-                    className={[
-                      'wizard-type-card',
-                      type,
-                      values.type === type ? 'active' : '',
-                    ]
-                      .filter(Boolean)
-                      .join(' ')}
-                    onClick={() => handleTypeSelect(type)}
-                    aria-pressed={values.type === type}
-                  >
-                    <span className="wizard-type-symbol">
-                      {type === 'expense' ? '-' : '+'}
-                    </span>
-                    <span className="wizard-type-label">
-                      {transactionTypeLabels[type]}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </section>
-          ) : null}
-
-          {step === 2 ? (
-            <section className="wizard-step" aria-label="Pénznem és összeg">
-              <p className={`wizard-selected-type ${values.type}`}>
-                {transactionTypeLabels[values.type]}
-              </p>
-
-              <label htmlFor="transactionCurrency">
-                Pénznem
-                <select
-                  id="transactionCurrency"
-                  value={values.currency}
-                  onChange={(event) => updateField('currency', event.target.value)}
-                  required
-                >
-                  {currencyOptions.map((currency) => (
-                    <option key={currency.id} value={currency.currency_code}>
-                      {currency.currency_code}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <div className="money-field-with-currency">
-                <MoneyInput
-                  id="transactionAmount"
-                  label="Összeg"
-                  value={values.amount}
-                  onChange={(value) => updateField('amount', value)}
-                  required
-                />
-                <span>{normalizeCurrencyCode(values.currency)}</span>
-              </div>
-
-              <button
-                className="primary-button wizard-primary-button"
-                type="button"
-                onClick={handleAmountNext}
-                disabled={!isAmountValid}
+        <form
+          className={[
+            'transaction-wizard-form',
+            step === 1 ? 'is-type-step' : 'has-footer',
+          ].join(' ')}
+          onSubmit={handleSubmit}
+          onFocusCapture={handleControlFocus}
+        >
+          <div className="transaction-wizard-content">
+            {step === 1 ? (
+              <section
+                className="wizard-step wizard-type-step"
+                aria-label="Tranzakció típusa"
               >
-                Tovább
-              </button>
-            </section>
-          ) : null}
-
-          {step === 3 ? (
-            <section className="wizard-step" aria-label="Fizetés, kategória és dátum">
-              <div className="wizard-field-group">
-                <span className="wizard-field-label">Fizetési mód</span>
-                <div className="wizard-payment-grid">
-                  {paymentMethodOptions.map((option) => (
+                <p className="wizard-question">
+                  Milyen tételt szeretnél rögzíteni?
+                </p>
+                <div className="wizard-type-grid">
+                  {(['income', 'expense'] as TransactionType[]).map((type) => (
                     <button
-                      key={option.value}
+                      key={type}
                       type="button"
-                      className={
-                        values.paymentMethod === option.value ? 'active' : ''
-                      }
-                      onClick={() =>
-                        updateField('paymentMethod', option.value as PaymentMethod)
-                      }
-                      aria-pressed={values.paymentMethod === option.value}
+                      className={[
+                        'wizard-type-card',
+                        type,
+                        values.type === type ? 'active' : '',
+                      ]
+                        .filter(Boolean)
+                        .join(' ')}
+                      onClick={() => handleTypeSelect(type)}
+                      aria-pressed={values.type === type}
                     >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="wizard-field-group">
-                <span className="wizard-field-label">Kategória</span>
-                <div className="wizard-category-list">
-                  {matchingCategories.map((category) => (
-                    <button
-                      key={category.id}
-                      type="button"
-                      className={
-                        selectedCategoryId === category.id ? 'active' : ''
-                      }
-                      onClick={() => updateField('categoryId', category.id)}
-                      aria-pressed={selectedCategoryId === category.id}
-                      style={{ '--category-color': category.color } as CSSProperties}
-                    >
-                      <span
-                        className="wizard-category-icon"
-                        style={{ backgroundColor: category.color }}
-                      >
-                        {category.icon || '•'}
+                      <span className="wizard-type-symbol">
+                        {type === 'expense' ? '-' : '+'}
                       </span>
-                      <span>{category.name}</span>
+                      <span className="wizard-type-label">
+                        {transactionTypeLabels[type]}
+                      </span>
                     </button>
                   ))}
                 </div>
-              </div>
+              </section>
+            ) : null}
 
-              <label htmlFor="transactionDate">
-                Dátum
-                <input
-                  id="transactionDate"
-                  type="date"
-                  value={values.transactionDate}
-                  onChange={(event) =>
-                    updateField('transactionDate', event.target.value)
-                  }
-                  required
-                />
-              </label>
+            {step === 2 ? (
+              <section className="wizard-step" aria-label="Pénznem és összeg">
+                <p className={`wizard-selected-type ${values.type}`}>
+                  {transactionTypeLabels[values.type]}
+                </p>
 
-              <button
-                className="primary-button wizard-primary-button"
-                type="button"
-                onClick={handleDetailsNext}
-                disabled={!canContinueDetails}
-              >
-                Tovább
-              </button>
-            </section>
-          ) : null}
+                <label htmlFor="transactionCurrency">
+                  Pénznem
+                  <select
+                    id="transactionCurrency"
+                    value={values.currency}
+                    onChange={(event) => updateField('currency', event.target.value)}
+                    required
+                  >
+                    {currencyOptions.map((currency) => (
+                      <option key={currency.id} value={currency.currency_code}>
+                        {currency.currency_code}
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
-          {step === 4 ? (
-            <section className="wizard-step" aria-label="Partner és megjegyzés">
-              <label htmlFor="transactionMerchant">
-                Partner vagy üzlet
-                <input
-                  id="transactionMerchant"
-                  type="text"
-                  value={values.merchantName}
-                  onChange={(event) =>
-                    updateField('merchantName', event.target.value)
-                  }
-                />
-              </label>
-
-              <label htmlFor="transactionNote">
-                Megjegyzés
-                <textarea
-                  id="transactionNote"
-                  value={values.note}
-                  onChange={(event) => updateField('note', event.target.value)}
-                  rows={3}
-                />
-              </label>
-
-              <dl className="wizard-summary">
-                <div>
-                  <dt>Típus</dt>
-                  <dd>{transactionTypeLabels[values.type]}</dd>
+                <div className="money-field-with-currency">
+                  <MoneyInput
+                    id="transactionAmount"
+                    label="Összeg"
+                    value={values.amount}
+                    onChange={(value) => updateField('amount', value)}
+                    required
+                  />
+                  <span>{normalizeCurrencyCode(values.currency)}</span>
                 </div>
-                <div>
-                  <dt>Összeg</dt>
-                  <dd>{formatCurrency(amount, values.currency)}</dd>
-                </div>
-                <div>
-                  <dt>Kategória</dt>
-                  <dd>{selectedCategory?.name ?? 'Nincs kiválasztva'}</dd>
-                </div>
-                <div>
-                  <dt>Fizetési mód</dt>
-                  <dd>{getPaymentMethodLabel(values.paymentMethod)}</dd>
-                </div>
-                <div>
-                  <dt>Dátum</dt>
-                  <dd>{values.transactionDate}</dd>
-                </div>
-              </dl>
+              </section>
+            ) : null}
 
-              <button
-                className="primary-button wizard-primary-button"
-                type="submit"
-                disabled={isSaving}
-              >
-                {isSaving ? 'Mentés...' : 'Mentés'}
-              </button>
-            </section>
-          ) : null}
+            {step === 3 ? (
+              <section className="wizard-step" aria-label="Fizetés, kategória és dátum">
+                <div className="wizard-field-group">
+                  <span className="wizard-field-label">Fizetési mód</span>
+                  <div className="wizard-payment-grid">
+                    {paymentMethodOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        className={
+                          values.paymentMethod === option.value ? 'active' : ''
+                        }
+                        onClick={() =>
+                          updateField('paymentMethod', option.value as PaymentMethod)
+                        }
+                        aria-pressed={values.paymentMethod === option.value}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-          {message ? (
-            <p className={`message ${message.type}`} role="status">
-              {message.text}
-            </p>
+                <div className="wizard-field-group">
+                  <span className="wizard-field-label">Kategória</span>
+                  <div className="wizard-category-list">
+                    {matchingCategories.map((category) => (
+                      <button
+                        key={category.id}
+                        type="button"
+                        className={
+                          selectedCategoryId === category.id ? 'active' : ''
+                        }
+                        onClick={() => updateField('categoryId', category.id)}
+                        aria-pressed={selectedCategoryId === category.id}
+                        style={{ '--category-color': category.color } as CSSProperties}
+                      >
+                        <span
+                          className="wizard-category-icon"
+                          style={{ backgroundColor: category.color }}
+                        >
+                          {category.icon || '•'}
+                        </span>
+                        <span>{category.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <label htmlFor="transactionDate">
+                  Dátum
+                  <input
+                    id="transactionDate"
+                    type="date"
+                    value={values.transactionDate}
+                    onChange={(event) =>
+                      updateField('transactionDate', event.target.value)
+                    }
+                    required
+                  />
+                </label>
+              </section>
+            ) : null}
+
+            {step === 4 ? (
+              <section className="wizard-step" aria-label="Partner és megjegyzés">
+                <label htmlFor="transactionMerchant">
+                  Partner vagy üzlet
+                  <input
+                    id="transactionMerchant"
+                    type="text"
+                    value={values.merchantName}
+                    onChange={(event) =>
+                      updateField('merchantName', event.target.value)
+                    }
+                  />
+                </label>
+
+                <label htmlFor="transactionNote">
+                  Megjegyzés
+                  <textarea
+                    id="transactionNote"
+                    value={values.note}
+                    onChange={(event) => updateField('note', event.target.value)}
+                    rows={3}
+                  />
+                </label>
+
+                <dl className="wizard-summary">
+                  <div>
+                    <dt>Típus</dt>
+                    <dd>{transactionTypeLabels[values.type]}</dd>
+                  </div>
+                  <div>
+                    <dt>Összeg</dt>
+                    <dd>{formatCurrency(amount, values.currency)}</dd>
+                  </div>
+                  <div>
+                    <dt>Kategória</dt>
+                    <dd>{selectedCategory?.name ?? 'Nincs kiválasztva'}</dd>
+                  </div>
+                  <div>
+                    <dt>Fizetési mód</dt>
+                    <dd>{getPaymentMethodLabel(values.paymentMethod)}</dd>
+                  </div>
+                  <div>
+                    <dt>Dátum</dt>
+                    <dd>{values.transactionDate}</dd>
+                  </div>
+                </dl>
+              </section>
+            ) : null}
+
+            {message ? (
+              <p className={`message ${message.type}`} role="status">
+                {message.text}
+              </p>
+            ) : null}
+          </div>
+
+          {step > 1 ? (
+            <div className="wizard-footer">{renderPrimaryAction()}</div>
           ) : null}
         </form>
       </section>

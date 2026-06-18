@@ -1024,6 +1024,8 @@ button.metric-card {
 .transaction-wizard-panel {
   width: min(100%, 500px);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
   gap: 0;
   padding: 18px;
   background:
@@ -1124,16 +1126,36 @@ button.metric-card {
 
 .transaction-wizard-form,
 .wizard-step {
-  display: grid;
   min-width: 0;
 }
 
 .transaction-wizard-form {
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.transaction-wizard-content {
+  flex: 1;
+  min-height: 0;
+  display: grid;
   min-height: 440px;
   align-content: start;
   gap: 10px;
   overflow: auto;
-  padding: 4px 2px 2px;
+  padding: 4px 2px 96px;
+  overscroll-behavior: contain;
+}
+
+.transaction-wizard-form.is-type-step .transaction-wizard-content {
+  padding-bottom: 2px;
+}
+
+.wizard-step {
+  display: grid;
+  min-width: 0;
 }
 
 .wizard-step {
@@ -1398,9 +1420,23 @@ button.metric-card {
 
 .wizard-primary-button {
   min-height: 48px;
-  margin-top: 2px;
   border-radius: 16px;
   box-shadow: 0 14px 28px color-mix(in srgb, var(--accent) 24%, transparent);
+}
+
+.wizard-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  margin: 0 -18px -18px;
+  padding: 16px 18px 18px;
+  background:
+    linear-gradient(
+      to top,
+      var(--surface) 74%,
+      color-mix(in srgb, var(--surface) 72%, transparent) 88%,
+      transparent
+    );
 }
 
 .wizard-summary {
@@ -2977,8 +3013,9 @@ button.settings-row {
   }
 
   .transaction-wizard-panel {
-    max-height: 100svh;
-    min-height: 100svh;
+    height: var(--wizard-viewport-height, 100dvh);
+    max-height: var(--wizard-viewport-height, 100dvh);
+    min-height: 0;
     border-radius: 20px 20px 0 0;
     padding: 10px 14px max(14px, env(safe-area-inset-bottom));
     gap: 0;
@@ -3009,9 +3046,14 @@ button.settings-row {
     font-size: 16px;
   }
 
-  .transaction-wizard-form {
-    min-height: calc(100svh - 88px - env(safe-area-inset-bottom));
+  .transaction-wizard-content {
+    min-height: 0;
+    padding: 2px 0 calc(96px + env(safe-area-inset-bottom));
+  }
+
+  .transaction-wizard-form.is-type-step .transaction-wizard-content {
     padding-top: 2px;
+    padding-bottom: 2px;
   }
 
   .wizard-step {
@@ -3019,7 +3061,9 @@ button.settings-row {
   }
 
   .wizard-type-step {
-    min-height: calc(100svh - 128px - env(safe-area-inset-bottom));
+    min-height: calc(
+      var(--wizard-viewport-height, 100dvh) - 128px - env(safe-area-inset-bottom)
+    );
     padding: 0 0 24px;
   }
 
@@ -3078,6 +3122,18 @@ button.settings-row {
   .wizard-primary-button {
     min-height: 46px;
     border-radius: 15px;
+  }
+
+  .wizard-footer {
+    margin: 0 -14px calc(-1 * max(14px, env(safe-area-inset-bottom)));
+    padding: 18px 14px max(14px, env(safe-area-inset-bottom));
+    background:
+      linear-gradient(
+        to top,
+        var(--surface) 72%,
+        color-mix(in srgb, var(--surface) 82%, transparent) 90%,
+        transparent
+      );
   }
 
   .wizard-summary {
