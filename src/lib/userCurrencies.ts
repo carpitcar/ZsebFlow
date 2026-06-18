@@ -119,7 +119,7 @@ export async function ensureInitialUserCurrencies(userId: string) {
     return { data: existingRows, error: refreshError }
   }
 
-  let currencies = ((refreshedRows ?? []) as UserCurrency[]).map((currency) => ({
+  const currencies = ((refreshedRows ?? []) as UserCurrency[]).map((currency) => ({
     ...currency,
     currency_code: normalizeCurrencyCode(currency.currency_code),
   }))

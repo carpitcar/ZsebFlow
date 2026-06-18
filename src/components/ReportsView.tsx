@@ -30,7 +30,7 @@ import type {
 import { MobileBottomNav } from './MobileBottomNav'
 import { TransactionDetails } from './TransactionDetails'
 import { TransactionEditForm } from './TransactionEditForm'
-import { TransactionForm } from './TransactionForm'
+import { TransactionWizard } from './TransactionWizard'
 
 type ReportsViewProps = {
   userId: string
@@ -753,7 +753,7 @@ export function ReportsView({
       />
 
       {isFormOpen && account ? (
-        <TransactionForm
+        <TransactionWizard
           userId={userId}
           account={account}
           categories={categories}

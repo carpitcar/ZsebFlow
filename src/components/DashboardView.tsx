@@ -24,7 +24,7 @@ import { HomeDashboard } from './HomeDashboard'
 import { MobileBottomNav } from './MobileBottomNav'
 import { TransactionDetails } from './TransactionDetails'
 import { TransactionEditForm } from './TransactionEditForm'
-import { TransactionForm } from './TransactionForm'
+import { TransactionWizard } from './TransactionWizard'
 
 type Message = {
   type: 'success' | 'error'
@@ -385,7 +385,7 @@ export function DashboardView({
       />
 
       {isFormOpen ? (
-        <TransactionForm
+        <TransactionWizard
           userId={userId}
           account={account}
           categories={categories}
