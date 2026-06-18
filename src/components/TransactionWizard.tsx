@@ -1,5 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
-import type { CSSProperties, FocusEvent, FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type {
+  CSSProperties,
+  FocusEvent,
+  FormEvent,
+  KeyboardEvent,
+} from 'react'
 import { formatCurrency, normalizeCurrencyCode } from '../lib/currency'
 import { formatLocalDateInput } from '../lib/date'
 import { parseMoneyInput } from '../lib/money'
@@ -68,6 +73,7 @@ export function TransactionWizard({
   )
   const [isSaving, setIsSaving] = useState(false)
   const [message, setMessage] = useState<Message | null>(null)
+  const isSavingRef = useRef(false)
 
   useEffect(() => {
     if (typeof window === 'undefined' || !window.visualViewport) {
@@ -228,14 +234,12 @@ export function TransactionWizard({
     setStep(4)
   }
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setMessage(null)
-
-    if (isSaving) {
+  const saveTransaction = async () => {
+    if (isSavingRef.current) {
       return
     }
 
+    setMessage(null)
     const merchantName = values.merchantName.trim()
     const note = values.note.trim()
 
@@ -257,6 +261,7 @@ export function TransactionWizard({
       return
     }
 
+    isSavingRef.current = true
     setIsSaving(true)
 
     const { error } = await supabase.from('transactions').insert({
@@ -277,6 +282,7 @@ export function TransactionWizard({
         type: 'error',
         text: `Nem sikerült menteni a tranzakciót: ${error.message}`,
       })
+      isSavingRef.current = false
       setIsSaving(false)
       return
     }
@@ -286,8 +292,24 @@ export function TransactionWizard({
       text: 'A tranzakció mentése sikerült.',
     })
     await onSaved()
+    isSavingRef.current = false
     setIsSaving(false)
     onClose()
+  }
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+
+    const submitter = (event.nativeEvent as SubmitEvent).submitter
+    const isSaveButton =
+      submitter instanceof HTMLButtonElement &&
+      submitter.dataset.wizardAction === 'save'
+
+    if (!isSaveButton) {
+      return
+    }
+
+    await saveTransaction()
   }
 
   const renderBackButton = () =>
@@ -323,6 +345,14 @@ export function TransactionWizard({
     }, 80)
   }
 
+  const handleFormKeyDown = (event: KeyboardEvent<HTMLFormElement>) => {
+    if (event.key !== 'Enter' || event.target instanceof HTMLTextAreaElement) {
+      return
+    }
+
+    event.preventDefault()
+  }
+
   const renderPrimaryAction = () => {
     if (step === 2) {
       return (
@@ -355,6 +385,7 @@ export function TransactionWizard({
         <button
           className="primary-button wizard-primary-button"
           type="submit"
+          data-wizard-action="save"
           disabled={isSaving}
         >
           {isSaving ? 'Mentés...' : 'Mentés'}
@@ -397,6 +428,7 @@ export function TransactionWizard({
           ].join(' ')}
           onSubmit={handleSubmit}
           onFocusCapture={handleControlFocus}
+          onKeyDown={handleFormKeyDown}
         >
           <div className="transaction-wizard-content">
             {step === 1 ? (
