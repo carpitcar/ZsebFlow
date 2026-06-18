@@ -569,7 +569,7 @@ export function TransactionWizard({
                   <p>Milyen tételt szeretnél rögzíteni?</p>
                 </div>
                 <div className="wizard-type-grid">
-                  {(['income', 'expense'] as TransactionType[]).map((type) => (
+                  {(['expense', 'income'] as TransactionType[]).map((type) => (
                     <button
                       key={type}
                       type="button"
