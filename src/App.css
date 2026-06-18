@@ -8,8 +8,24 @@
   box-sizing: border-box;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+  padding: 0;
+  margin: -1px;
+}
+
 body.wizard-keyboard-open .app-shell {
   padding-bottom: 24px;
+}
+
+body.wizard-sheet-open {
+  overflow: hidden;
 }
 
 .app-shell:has(.finance-dashboard) {
@@ -976,6 +992,13 @@ button.metric-card {
   padding: 20px;
 }
 
+.modal-backdrop:has(.transaction-wizard-panel) {
+  place-items: end center;
+  background: rgba(2, 6, 23, 0.68);
+  padding: 18px 16px 0;
+  animation: wizardBackdropIn 160ms ease-out;
+}
+
 .modal-panel {
   width: min(100%, 540px);
   max-height: calc(100svh - 40px);
@@ -1031,15 +1054,34 @@ button.metric-card {
 
 .transaction-wizard-panel {
   width: min(100%, 500px);
-  max-height: min(calc(100svh - 40px), var(--visual-viewport-height, 100dvh));
+  max-height: min(
+    680px,
+    calc(var(--visual-viewport-height, 100dvh) - 28px),
+    88svh
+  );
   overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 0;
-  padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--border-strong) 70%, transparent);
+  border-radius: 30px 30px 0 0;
+  padding: 10px 18px 18px;
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--accent-soft) 38%, transparent), transparent 34%),
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-strong) 72%, transparent), transparent 42%),
     var(--surface);
+  box-shadow: 0 -22px 80px rgba(2, 6, 23, 0.42);
+  animation: wizardSheetIn 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.wizard-drag-handle {
+  width: 42px;
+  height: 5px;
+  flex: 0 0 auto;
+  justify-self: center;
+  align-self: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--border-strong) 72%, transparent);
+  margin: 0 0 10px;
 }
 
 .wizard-header {
@@ -1048,7 +1090,7 @@ button.metric-card {
   grid-template-columns: 40px minmax(0, 1fr) 40px;
   align-items: center;
   gap: 8px;
-  padding-bottom: 10px;
+  padding-bottom: 12px;
 }
 
 .wizard-heading {
@@ -1059,15 +1101,8 @@ button.metric-card {
   text-align: center;
 }
 
-.wizard-heading h2 {
-  margin: 0;
-  font-size: 21px;
-  line-height: 1.15;
-}
-
 .wizard-back-button,
-.wizard-close-button,
-.wizard-header-spacer {
+.wizard-close-button {
   width: 36px;
   height: 36px;
 }
@@ -1086,6 +1121,12 @@ button.metric-card {
   line-height: 1;
   padding: 0;
   box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+}
+
+.wizard-back-button:disabled {
+  cursor: default;
+  opacity: 0.42;
+  transform: none;
 }
 
 .wizard-close-button {
@@ -1151,7 +1192,6 @@ button.metric-card {
   flex: 1;
   min-height: 0;
   display: grid;
-  min-height: min(440px, calc(var(--visual-viewport-height, 100dvh) - 150px));
   align-content: start;
   gap: 10px;
   overflow: auto;
@@ -1175,49 +1215,55 @@ button.metric-card {
 }
 
 .wizard-type-step {
-  min-height: 382px;
-  align-content: center;
-  justify-items: center;
-  padding: 12px 0 22px;
+  align-content: start;
+  justify-items: stretch;
+  padding: 4px 0 8px;
 }
 
-.wizard-question {
+.wizard-step-intro {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.wizard-step-intro h3 {
   margin: 0;
   color: var(--text-strong);
-  font-size: 18px;
-  font-weight: 800;
-  line-height: 1.25;
-  text-align: center;
+  font-size: 24px;
+  font-weight: 850;
+  line-height: 1.12;
+}
+
+.wizard-step-intro p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.35;
 }
 
 .wizard-type-grid {
-  width: min(100%, 390px);
+  width: 100%;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-top: 4px;
+  grid-template-columns: 1fr;
+  gap: 10px;
 }
 
 .wizard-type-card {
   min-width: 0;
-  min-height: 152px;
+  min-height: 74px;
   display: grid;
-  place-items: center;
-  align-content: center;
+  grid-template-columns: 42px minmax(0, 1fr) 22px;
+  align-items: center;
   gap: 12px;
-  border: 1px solid color-mix(in srgb, var(--border-strong) 76%, transparent);
-  border-radius: 26px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.52), transparent),
-    color-mix(in srgb, var(--surface) 88%, var(--control-bg));
+  border: 1px solid color-mix(in srgb, var(--border-strong) 70%, transparent);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--surface) 86%, var(--control-bg));
   color: var(--text-strong);
   cursor: pointer;
   font: inherit;
-  font-weight: 800;
-  padding: 18px 14px;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.38),
-    0 12px 32px rgba(15, 23, 42, 0.08);
+  padding: 12px;
+  text-align: left;
   transition:
     border-color 140ms ease,
     background-color 140ms ease,
@@ -1226,28 +1272,22 @@ button.metric-card {
 }
 
 .wizard-type-card.expense {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.6), transparent),
-    color-mix(in srgb, #fee2e2 34%, var(--surface));
+  border-color: color-mix(in srgb, #f87171 36%, var(--border));
+  background: color-mix(in srgb, #f87171 9%, var(--surface));
 }
 
 .wizard-type-card.income {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.6), transparent),
-    color-mix(in srgb, #dcfce7 34%, var(--surface));
+  border-color: color-mix(in srgb, #22c55e 36%, var(--border));
+  background: color-mix(in srgb, #22c55e 9%, var(--surface));
 }
 
 .wizard-type-card:hover,
 .wizard-type-card:focus-visible,
 .wizard-type-card.active {
-  border-color: var(--accent);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.68), transparent),
-    var(--accent-soft);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.48),
-    0 18px 42px rgba(15, 23, 42, 0.13);
-  transform: translateY(-2px);
+  border-color: color-mix(in srgb, currentColor 26%, var(--accent));
+  background: color-mix(in srgb, var(--accent-soft) 58%, var(--surface));
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.1);
+  transform: translateY(-1px);
 }
 
 .wizard-type-card:active {
@@ -1255,19 +1295,17 @@ button.metric-card {
 }
 
 .wizard-type-symbol {
-  width: 54px;
-  height: 54px;
+  width: 42px;
+  height: 42px;
   display: grid;
   place-items: center;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.72);
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
   color: var(--accent);
-  font-size: 30px;
+  font-size: 24px;
   font-weight: 850;
   line-height: 1;
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.78),
-    0 10px 22px rgba(15, 23, 42, 0.08);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 18%, transparent);
 }
 
 .wizard-type-card.expense .wizard-type-symbol {
@@ -1279,8 +1317,27 @@ button.metric-card {
 }
 
 .wizard-type-label {
-  font-size: 18px;
+  display: block;
+  color: var(--text-strong);
+  font-size: 16px;
+  font-weight: 820;
   line-height: 1.1;
+}
+
+.wizard-type-description {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 620;
+  line-height: 1.25;
+}
+
+.wizard-type-chevron {
+  color: var(--muted);
+  font-size: 26px;
+  line-height: 1;
+  justify-self: end;
 }
 
 .wizard-selected-type {
@@ -1487,6 +1544,26 @@ button.metric-card {
   font-weight: 750;
   overflow-wrap: anywhere;
   text-align: right;
+}
+
+@keyframes wizardBackdropIn {
+  from {
+    background: rgba(2, 6, 23, 0);
+  }
+}
+
+@keyframes wizardSheetIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-backdrop:has(.transaction-wizard-panel),
+  .transaction-wizard-panel {
+    animation: none;
+  }
 }
 
 .details-panel {
@@ -3012,6 +3089,10 @@ button.settings-row {
     padding: 0;
   }
 
+  .modal-backdrop:has(.transaction-wizard-panel) {
+    padding: 18px 12px 0;
+  }
+
   .modal-panel {
     width: 100%;
     max-height: 94svh;
@@ -3030,10 +3111,15 @@ button.settings-row {
   }
 
   .transaction-wizard-panel {
-    height: var(--visual-viewport-height, 100dvh);
-    max-height: var(--visual-viewport-height, 100dvh);
+    width: min(100%, 500px);
+    height: auto;
+    max-height: min(
+      680px,
+      calc(var(--visual-viewport-height, 100dvh) - 20px),
+      88svh
+    );
     min-height: 0;
-    border-radius: 20px 20px 0 0;
+    border-radius: 28px 28px 0 0;
     padding: 10px 14px 0;
     gap: 0;
   }
@@ -3047,7 +3133,8 @@ button.settings-row {
   }
 
   .transaction-wizard-panel.is-keyboard-open {
-    border-radius: 0;
+    max-height: var(--visual-viewport-height, 100dvh);
+    border-radius: 20px 20px 0 0;
   }
 
   .wizard-header {
@@ -3056,11 +3143,11 @@ button.settings-row {
     margin: -10px -14px 0;
     border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
     background: var(--surface);
-    padding: 10px 14px 9px;
+    padding: 0 14px 9px;
   }
 
-  .wizard-heading h2 {
-    font-size: 18px;
+  .wizard-drag-handle {
+    margin-bottom: 9px;
   }
 
   .wizard-back-button,
@@ -3070,8 +3157,12 @@ button.settings-row {
     height: 34px;
   }
 
-  .wizard-question {
-    font-size: 16px;
+  .wizard-step-intro h3 {
+    font-size: 23px;
+  }
+
+  .wizard-step-intro p {
+    font-size: 14px;
   }
 
   .transaction-wizard-content {
@@ -3090,32 +3181,29 @@ button.settings-row {
   }
 
   .wizard-type-step {
-    min-height: calc(
-      var(--visual-viewport-height, 100dvh) - 128px - env(safe-area-inset-bottom)
-    );
-    padding: 0 0 24px;
+    padding: 2px 0 14px;
   }
 
   .wizard-type-grid {
-    width: min(100%, 372px);
+    width: 100%;
     gap: 10px;
   }
 
   .wizard-type-card {
-    min-height: 140px;
-    border-radius: 24px;
-    gap: 11px;
-    padding: 16px 10px;
+    min-height: 72px;
+    border-radius: 18px;
+    gap: 12px;
+    padding: 11px 12px;
   }
 
   .wizard-type-symbol {
-    width: 50px;
-    height: 50px;
-    font-size: 28px;
+    width: 42px;
+    height: 42px;
+    font-size: 24px;
   }
 
   .wizard-type-label {
-    font-size: 17px;
+    font-size: 16px;
   }
 
   .wizard-payment-grid {

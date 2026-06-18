@@ -77,7 +77,26 @@ export function TransactionWizard({
   const isSavingRef = useRef(false)
   const hasCompletedSaveRef = useRef(false)
   const savePointerIntentRef = useRef(false)
+  const sheetRef = useRef<HTMLElement | null>(null)
+  const returnFocusRef = useRef<HTMLElement | null>(null)
   const visualViewport = useVisualViewport()
+
+  useEffect(() => {
+    returnFocusRef.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null
+    document.body.classList.add('wizard-sheet-open')
+
+    window.setTimeout(() => {
+      sheetRef.current?.focus()
+    }, 0)
+
+    return () => {
+      document.body.classList.remove('wizard-sheet-open')
+      returnFocusRef.current?.focus()
+    }
+  }, [])
 
   useEffect(() => {
     document.body.classList.toggle(
@@ -354,6 +373,50 @@ export function TransactionWizard({
     }
   }
 
+  const handleSheetKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      handleClose()
+      return
+    }
+
+    if (event.key !== 'Tab') {
+      return
+    }
+
+    const sheet = sheetRef.current
+
+    if (!sheet) {
+      return
+    }
+
+    const focusableElements = Array.from(
+      sheet.querySelectorAll<HTMLElement>(
+        'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [href], [tabindex]:not([tabindex="-1"])',
+      ),
+    ).filter((element) => element.offsetParent !== null)
+
+    if (focusableElements.length === 0) {
+      event.preventDefault()
+      sheet.focus()
+      return
+    }
+
+    const firstElement = focusableElements[0]
+    const lastElement = focusableElements[focusableElements.length - 1]
+
+    if (event.shiftKey && document.activeElement === firstElement) {
+      event.preventDefault()
+      lastElement.focus()
+      return
+    }
+
+    if (!event.shiftKey && document.activeElement === lastElement) {
+      event.preventDefault()
+      firstElement.focus()
+    }
+  }
+
   const handleControlFocus = (event: FocusEvent<HTMLFormElement>) => {
     const target = event.target
 
@@ -384,7 +447,14 @@ export function TransactionWizard({
         ‹
       </button>
     ) : (
-      <span className="wizard-header-spacer" />
+      <button
+        className="wizard-back-button"
+        type="button"
+        disabled
+        aria-label="Nincs előző lépés"
+      >
+        ‹
+      </button>
     )
 
   const renderPrimaryAction = () => {
@@ -438,6 +508,7 @@ export function TransactionWizard({
       style={wizardViewportStyle}
     >
       <section
+        ref={sheetRef}
         className={[
           'modal-panel transaction-wizard-panel',
           visualViewport.isKeyboardOpen ? 'is-keyboard-open' : '',
@@ -447,12 +518,17 @@ export function TransactionWizard({
         role="dialog"
         aria-modal="true"
         aria-labelledby="transactionWizardTitle"
+        tabIndex={-1}
+        onKeyDown={handleSheetKeyDown}
       >
+        <div className="wizard-drag-handle" aria-hidden="true" />
+        <h2 className="sr-only" id="transactionWizardTitle">
+          Új tétel
+        </h2>
         <div className="wizard-header">
           {renderBackButton()}
           <div className="wizard-heading">
             <TransactionWizardProgress currentStep={step} totalSteps={totalSteps} />
-            <h2 id="transactionWizardTitle">Új tétel</h2>
           </div>
           <button
             className="wizard-close-button"
@@ -480,9 +556,10 @@ export function TransactionWizard({
                 className="wizard-step wizard-type-step"
                 aria-label="Tranzakció típusa"
               >
-                <p className="wizard-question">
-                  Milyen tételt szeretnél rögzíteni?
-                </p>
+                <div className="wizard-step-intro">
+                  <h3>Új tétel</h3>
+                  <p>Milyen tételt szeretnél rögzíteni?</p>
+                </div>
                 <div className="wizard-type-grid">
                   {(['income', 'expense'] as TransactionType[]).map((type) => (
                     <button
@@ -501,8 +578,18 @@ export function TransactionWizard({
                       <span className="wizard-type-symbol">
                         {type === 'expense' ? '-' : '+'}
                       </span>
-                      <span className="wizard-type-label">
-                        {transactionTypeLabels[type]}
+                      <span className="wizard-type-copy">
+                        <span className="wizard-type-label">
+                          {transactionTypeLabels[type]}
+                        </span>
+                        <span className="wizard-type-description">
+                          {type === 'income'
+                            ? 'Fizetés, bevétel, jóváírás'
+                            : 'Vásárlás, számla, költés'}
+                        </span>
+                      </span>
+                      <span className="wizard-type-chevron" aria-hidden="true">
+                        ›
                       </span>
                     </button>
                   ))}
