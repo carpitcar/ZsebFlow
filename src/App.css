@@ -1145,8 +1145,9 @@ button.metric-card {
   align-content: start;
   gap: 10px;
   overflow: auto;
-  padding: 4px 2px 96px;
+  padding: 4px 2px 18px;
   overscroll-behavior: contain;
+  scroll-padding-bottom: calc(72px + env(safe-area-inset-bottom));
 }
 
 .transaction-wizard-form.is-type-step .transaction-wizard-content {
@@ -1299,6 +1300,12 @@ button.metric-card {
   background: var(--surface);
 }
 
+.transaction-wizard-form input,
+.transaction-wizard-form select,
+.transaction-wizard-form textarea {
+  scroll-margin-bottom: calc(86px + env(safe-area-inset-bottom));
+}
+
 .wizard-selected-type.expense {
   background: rgba(239, 68, 68, 0.12);
   color: #b91c1c;
@@ -1425,8 +1432,8 @@ button.metric-card {
 }
 
 .wizard-footer {
-  position: sticky;
-  bottom: 0;
+  flex: 0 0 auto;
+  position: relative;
   z-index: 3;
   margin: 0 -18px -18px;
   padding: 16px 18px 18px;
@@ -3048,7 +3055,8 @@ button.settings-row {
 
   .transaction-wizard-content {
     min-height: 0;
-    padding: 2px 0 calc(96px + env(safe-area-inset-bottom));
+    padding: 2px 0 14px;
+    scroll-padding-bottom: calc(78px + env(safe-area-inset-bottom));
   }
 
   .transaction-wizard-form.is-type-step .transaction-wizard-content {

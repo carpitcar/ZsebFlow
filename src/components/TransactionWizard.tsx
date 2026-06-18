@@ -74,6 +74,8 @@ export function TransactionWizard({
   const [isSaving, setIsSaving] = useState(false)
   const [message, setMessage] = useState<Message | null>(null)
   const isSavingRef = useRef(false)
+  const hasCompletedSaveRef = useRef(false)
+  const savePointerIntentRef = useRef(false)
 
   useEffect(() => {
     if (typeof window === 'undefined' || !window.visualViewport) {
@@ -234,8 +236,22 @@ export function TransactionWizard({
     setStep(4)
   }
 
-  const saveTransaction = async () => {
-    if (isSavingRef.current) {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+
+    const submitter = (event.nativeEvent as SubmitEvent).submitter
+    const isSaveButton =
+      submitter instanceof HTMLButtonElement &&
+      submitter.dataset.wizardAction === 'save'
+
+    if (!isSaveButton || step !== 4 || !savePointerIntentRef.current) {
+      savePointerIntentRef.current = false
+      return
+    }
+
+    savePointerIntentRef.current = false
+
+    if (isSavingRef.current || hasCompletedSaveRef.current) {
       return
     }
 
@@ -264,52 +280,92 @@ export function TransactionWizard({
     isSavingRef.current = true
     setIsSaving(true)
 
-    const { error } = await supabase.from('transactions').insert({
-      user_id: userId,
-      account_id: account.id,
-      category_id: selectedCategoryId,
-      type: values.type,
-      amount,
-      currency: normalizeCurrencyCode(values.currency),
-      payment_method: normalizePaymentMethod(values.paymentMethod),
-      transaction_date: values.transactionDate,
-      merchant_name: merchantName || null,
-      note: note || null,
-    })
+    try {
+      const { error } = await supabase.from('transactions').insert({
+        user_id: userId,
+        account_id: account.id,
+        category_id: selectedCategoryId,
+        type: values.type,
+        amount,
+        currency: normalizeCurrencyCode(values.currency),
+        payment_method: normalizePaymentMethod(values.paymentMethod),
+        transaction_date: values.transactionDate,
+        merchant_name: merchantName || null,
+        note: note || null,
+      })
 
-    if (error) {
+      if (error) {
+        setMessage({
+          type: 'error',
+          text: `Nem sikerült menteni a tranzakciót: ${error.message}`,
+        })
+        isSavingRef.current = false
+        setIsSaving(false)
+        return
+      }
+
+      hasCompletedSaveRef.current = true
+      setMessage({
+        type: 'success',
+        text: 'A tranzakció mentése sikerült.',
+      })
+      await onSaved()
+      onClose()
+    } catch (error) {
+      if (!hasCompletedSaveRef.current) {
+        isSavingRef.current = false
+        setIsSaving(false)
+      }
+      const errorMessage =
+        error instanceof Error ? error.message : 'Ismeretlen hiba történt.'
       setMessage({
         type: 'error',
-        text: `Nem sikerült menteni a tranzakciót: ${error.message}`,
+        text: `Nem sikerült menteni a tranzakciót: ${errorMessage}`,
       })
-      isSavingRef.current = false
-      setIsSaving(false)
-      return
     }
-
-    setMessage({
-      type: 'success',
-      text: 'A tranzakció mentése sikerült.',
-    })
-    await onSaved()
-    isSavingRef.current = false
-    setIsSaving(false)
-    onClose()
   }
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
+  const handleSavePointerDown = () => {
+    savePointerIntentRef.current = true
 
-    const submitter = (event.nativeEvent as SubmitEvent).submitter
-    const isSaveButton =
-      submitter instanceof HTMLButtonElement &&
-      submitter.dataset.wizardAction === 'save'
+    window.setTimeout(() => {
+      savePointerIntentRef.current = false
+    }, 1200)
+  }
 
-    if (!isSaveButton) {
+  const handleFormKeyDown = (event: KeyboardEvent<HTMLFormElement>) => {
+    if (event.key !== 'Enter' || event.target instanceof HTMLTextAreaElement) {
       return
     }
 
-    await saveTransaction()
+    if (step === 4) {
+      event.preventDefault()
+      return
+    }
+
+    const target = event.target
+
+    if (
+      target instanceof HTMLElement &&
+      target.matches('input, select')
+    ) {
+      event.preventDefault()
+    }
+  }
+
+  const handleControlFocus = (event: FocusEvent<HTMLFormElement>) => {
+    const target = event.target
+
+    if (
+      !(target instanceof HTMLElement) ||
+      !target.matches('input, select, textarea')
+    ) {
+      return
+    }
+
+    window.setTimeout(() => {
+      target.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    }, 80)
   }
 
   const renderBackButton = () =>
@@ -329,29 +385,6 @@ export function TransactionWizard({
     ) : (
       <span className="wizard-header-spacer" />
     )
-
-  const handleControlFocus = (event: FocusEvent<HTMLFormElement>) => {
-    const target = event.target
-
-    if (
-      !(target instanceof HTMLElement) ||
-      !target.matches('input, select, textarea')
-    ) {
-      return
-    }
-
-    window.setTimeout(() => {
-      target.scrollIntoView({ block: 'center', behavior: 'smooth' })
-    }, 80)
-  }
-
-  const handleFormKeyDown = (event: KeyboardEvent<HTMLFormElement>) => {
-    if (event.key !== 'Enter' || event.target instanceof HTMLTextAreaElement) {
-      return
-    }
-
-    event.preventDefault()
-  }
 
   const renderPrimaryAction = () => {
     if (step === 2) {
@@ -386,6 +419,7 @@ export function TransactionWizard({
           className="primary-button wizard-primary-button"
           type="submit"
           data-wizard-action="save"
+          onPointerDown={handleSavePointerDown}
           disabled={isSaving}
         >
           {isSaving ? 'Mentés...' : 'Mentés'}
