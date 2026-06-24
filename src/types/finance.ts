@@ -21,6 +21,7 @@ export type UserCurrency = {
 export type PaymentMethod =
   | 'unknown'
   | 'card'
+  | 'szep_card'
   | 'cash'
   | 'bank_transfer'
   | 'revolut'

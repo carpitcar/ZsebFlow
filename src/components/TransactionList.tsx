@@ -42,6 +42,18 @@ function PaymentMethodIcon({
     )
   }
 
+  if (paymentMethod === 'szep_card') {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <rect x="3.5" y="6" width="17" height="12" rx="2.2" fill="none" />
+        <path d="M3.5 10.2h17" />
+        <path d="M7 14.2h3.4" />
+        <path d="M14.2 13.3v3" />
+        <path d="M12.7 14.8h3" />
+      </svg>
+    )
+  }
+
   if (paymentMethod === 'cash') {
     return (
       <svg aria-hidden="true" viewBox="0 0 24 24">

@@ -194,7 +194,7 @@ select,
 textarea {
   width: 100%;
   min-height: 46px;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--input-border-color);
   border-radius: 6px;
   background: var(--surface);
   color: var(--text-strong);
@@ -211,8 +211,24 @@ input:focus,
 select:focus,
 textarea:focus,
 button:focus-visible {
-  outline: 3px solid var(--focus);
+  outline: 3px solid var(--input-focus-color);
   outline-offset: 2px;
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+input:user-invalid,
+select:user-invalid,
+textarea:user-invalid,
+input[aria-invalid='true'],
+select[aria-invalid='true'],
+textarea[aria-invalid='true'] {
+  border-color: var(--error-text);
 }
 
 .password-control {
@@ -1358,7 +1374,7 @@ button.metric-card {
 .transaction-wizard-form textarea {
   border-radius: 16px;
   background: color-mix(in srgb, var(--surface) 88%, var(--control-bg));
-  border-color: color-mix(in srgb, var(--border-strong) 76%, transparent);
+  border-color: var(--input-border-color);
 }
 
 .transaction-wizard-form input:focus,
@@ -1424,7 +1440,7 @@ button.metric-card {
 .wizard-category-select,
 .wizard-category-picker button {
   min-width: 0;
-  border: 1px solid color-mix(in srgb, var(--border-strong) 76%, transparent);
+  border: 1px solid var(--input-border-color);
   border-radius: 16px;
   background: color-mix(in srgb, var(--surface) 88%, var(--control-bg));
   color: var(--text-strong);
@@ -1433,11 +1449,16 @@ button.metric-card {
 }
 
 .wizard-payment-grid button {
-  min-height: 42px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 8px 7px;
   font-size: 13px;
   font-weight: 750;
   line-height: 1.2;
+  text-align: center;
+  overflow-wrap: anywhere;
 }
 
 .wizard-payment-grid button.active {
@@ -1461,11 +1482,7 @@ button.metric-card {
 
 .wizard-category-select.has-selection {
   grid-template-columns: 34px minmax(0, 1fr) 20px;
-  border-color: color-mix(
-    in srgb,
-    var(--category-color, var(--accent)) 45%,
-    var(--border)
-  );
+  border-color: var(--input-border-color);
   background: color-mix(
     in srgb,
     var(--category-color, var(--accent)) 10%,
@@ -3271,9 +3288,9 @@ button.settings-row {
   }
 
   .wizard-payment-grid button {
-    min-height: 42px;
+    min-height: 44px;
     border-radius: 14px;
-    padding: 7px 5px;
+    padding: 7px 6px;
     font-size: 12px;
   }
 
