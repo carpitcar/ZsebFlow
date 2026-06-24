@@ -16,6 +16,9 @@ import {
 } from '../lib/categoryType'
 import {
   getPaymentMethodLabel,
+  incomeDestinationOptions,
+  isExpensePaymentMethod,
+  isIncomeDestination,
   normalizePaymentMethod,
   paymentMethodOptions,
   type PaymentMethod,
@@ -146,11 +149,12 @@ export function TransactionWizard({
   useEffect(() => {
     if (
       values.categoryId &&
-      !isCategoryCompatibleWithTransactionType(
-        categories,
-        values.categoryId,
-        values.type,
-      )
+      (values.type === 'income' ||
+        !isCategoryCompatibleWithTransactionType(
+          categories,
+          values.categoryId,
+          values.type,
+        ))
     ) {
       setValues((currentValues) => ({
         ...currentValues,
@@ -188,9 +192,13 @@ export function TransactionWizard({
 
   const amount = parseMoneyInput(values.amount)
   const isAmountValid = amount > 0
+  const isExpense = values.type === 'expense'
+  const hasValidPaymentMethod = isExpense
+    ? isExpensePaymentMethod(values.paymentMethod)
+    : isIncomeDestination(values.paymentMethod)
   const canContinueDetails =
-    Boolean(values.paymentMethod) &&
-    Boolean(selectedCategoryId) &&
+    hasValidPaymentMethod &&
+    (!isExpense || Boolean(selectedCategoryId)) &&
     Boolean(values.transactionDate)
 
   const hasMeaningfulData =
@@ -207,13 +215,26 @@ export function TransactionWizard({
     setValues((currentValues) => ({
       ...currentValues,
       [field]: value,
-      ...(field === 'type' &&
-      !isCategoryCompatibleWithTransactionType(
-        categories,
-        currentValues.categoryId,
-        value as TransactionType,
-      )
-        ? { categoryId: '' }
+      ...(field === 'type'
+        ? {
+            categoryId:
+              value === 'expense' &&
+              isCategoryCompatibleWithTransactionType(
+                categories,
+                currentValues.categoryId,
+                value as TransactionType,
+              )
+                ? currentValues.categoryId
+                : '',
+            paymentMethod:
+              value === 'income'
+                ? isIncomeDestination(currentValues.paymentMethod)
+                  ? currentValues.paymentMethod
+                  : 'unknown'
+                : isExpensePaymentMethod(currentValues.paymentMethod)
+                  ? currentValues.paymentMethod
+                  : 'card',
+          }
         : {}),
     }))
   }
@@ -258,15 +279,15 @@ export function TransactionWizard({
     setMessage(null)
     setIsCategoryPickerOpen(false)
 
-    if (!values.paymentMethod) {
+    if (!hasValidPaymentMethod) {
       setMessage({
         type: 'error',
-        text: 'Válassz fizetési módot.',
+        text: isExpense ? 'Válassz fizetési módot.' : 'Válaszd ki, hová érkezett.',
       })
       return
     }
 
-    if (!selectedCategoryId) {
+    if (isExpense && !selectedCategoryId) {
       setMessage({
         type: 'error',
         text: 'Válassz kategóriát a tranzakcióhoz.',
@@ -317,10 +338,12 @@ export function TransactionWizard({
       return
     }
 
-    if (!selectedCategoryId || !values.transactionDate) {
+    if ((isExpense && !selectedCategoryId) || !values.transactionDate) {
       setMessage({
         type: 'error',
-        text: 'Hiányzik a kategória vagy a dátum.',
+        text: isExpense
+          ? 'Hiányzik a kategória vagy a dátum.'
+          : 'Hiányzik az érkezési hely vagy a dátum.',
       })
       setStep(3)
       return
@@ -333,7 +356,7 @@ export function TransactionWizard({
       const { error } = await supabase.from('transactions').insert({
         user_id: userId,
         account_id: account.id,
-        category_id: selectedCategoryId,
+        category_id: isExpense ? selectedCategoryId : null,
         type: values.type,
         amount,
         currency: normalizeCurrencyCode(values.currency),
@@ -675,11 +698,20 @@ export function TransactionWizard({
             ) : null}
 
             {step === 3 && !isCategoryPickerOpen ? (
-              <section className="wizard-step" aria-label="Fizetés, kategória és dátum">
+              <section
+                className="wizard-step"
+                aria-label={
+                  isExpense
+                    ? 'Fizetés, kategória és dátum'
+                    : 'Érkezési hely és dátum'
+                }
+              >
                 <div className="wizard-field-group">
-                  <span className="wizard-field-label">Fizetési mód</span>
+                  <span className="wizard-field-label">
+                    {isExpense ? 'Fizetési mód' : 'Hová érkezett?'}
+                  </span>
                   <div className="wizard-payment-grid">
-                    {paymentMethodOptions.map((option) => (
+                    {(isExpense ? paymentMethodOptions : incomeDestinationOptions).map((option) => (
                       <button
                         key={option.value}
                         type="button"
@@ -700,51 +732,52 @@ export function TransactionWizard({
                   </div>
                 </div>
 
-                <div className="wizard-field-group">
-                  <span className="wizard-field-label">Kategória</span>
-                  <button
-                    className={[
-                      'wizard-category-select',
-                      selectedCategory ? 'has-selection' : '',
-                    ]
-                      .filter(Boolean)
-                      .join(' ')}
-                    type="button"
-                    onClick={() => setIsCategoryPickerOpen(true)}
-                    aria-expanded={isCategoryPickerOpen}
-                    aria-controls="transactionCategoryPicker"
-                    disabled={matchingCategories.length === 0}
-                    style={
-                      {
-                        '--category-color':
-                          selectedCategory?.color ?? 'var(--border-strong)',
-                      } as CSSProperties
-                    }
-                  >
-                    {selectedCategory ? (
-                      <span
-                        className="wizard-category-icon"
-                        style={{ backgroundColor: selectedCategory.color }}
-                        aria-hidden="true"
-                      >
-                        {selectedCategory.icon || '•'}
+                {isExpense ? (
+                  <div className="wizard-field-group">
+                    <span className="wizard-field-label">Kategória</span>
+                    <button
+                      className={[
+                        'wizard-category-select',
+                        selectedCategory ? 'has-selection' : '',
+                      ]
+                        .filter(Boolean)
+                        .join(' ')}
+                      type="button"
+                      onClick={() => setIsCategoryPickerOpen(true)}
+                      aria-expanded={isCategoryPickerOpen}
+                      aria-controls="transactionCategoryPicker"
+                      disabled={matchingCategories.length === 0}
+                      style={
+                        {
+                          '--category-color':
+                            selectedCategory?.color ?? 'var(--border-strong)',
+                        } as CSSProperties
+                      }
+                    >
+                      {selectedCategory ? (
+                        <span
+                          className="wizard-category-icon"
+                          style={{ backgroundColor: selectedCategory.color }}
+                          aria-hidden="true"
+                        >
+                          {selectedCategory.icon || '•'}
+                        </span>
+                      ) : null}
+                      <span className="wizard-category-select-text">
+                        {selectedCategory?.name ?? 'Válassz kategóriát'}
                       </span>
+                      <span className="wizard-category-chevron" aria-hidden="true">
+                        ›
+                      </span>
+                    </button>
+
+                    {matchingCategories.length === 0 ? (
+                      <p className="wizard-category-empty" role="status">
+                        {categoryTypeEmptyMessages[values.type]}
+                      </p>
                     ) : null}
-                    <span className="wizard-category-select-text">
-                      {selectedCategory?.name ?? 'Válassz kategóriát'}
-                    </span>
-                    <span className="wizard-category-chevron" aria-hidden="true">
-                      ›
-                    </span>
-                  </button>
-
-                  {matchingCategories.length === 0 ? (
-                    <p className="wizard-category-empty" role="status">
-                      {categoryTypeEmptyMessages[values.type]}
-                    </p>
-                  ) : null}
-
-                </div>
+                  </div>
+                ) : null}
 
                 <label className="wizard-field-group" htmlFor="transactionDate">
                   <span className="wizard-field-label">Dátum</span>
@@ -778,7 +811,7 @@ export function TransactionWizard({
               </section>
             ) : null}
 
-            {step === 3 && isCategoryPickerOpen ? (
+            {step === 3 && isExpense && isCategoryPickerOpen ? (
               <section
                 className="wizard-step wizard-category-sheet"
                 aria-label="Kategória kiválasztása"
@@ -866,13 +899,15 @@ export function TransactionWizard({
                     <dd>{formatCurrency(amount, values.currency)}</dd>
                   </div>
                   <div>
-                    <dt>Kategória</dt>
-                    <dd>{selectedCategory?.name ?? 'Nincs kiválasztva'}</dd>
+                    <dt>{isExpense ? 'Fizetési mód' : 'Hová érkezett'}</dt>
+                    <dd>{getPaymentMethodLabel(values.paymentMethod, values.type)}</dd>
                   </div>
-                  <div>
-                    <dt>Fizetési mód</dt>
-                    <dd>{getPaymentMethodLabel(values.paymentMethod)}</dd>
-                  </div>
+                  {isExpense ? (
+                    <div>
+                      <dt>Kategória</dt>
+                      <dd>{selectedCategory?.name ?? 'Nincs kiválasztva'}</dd>
+                    </div>
+                  ) : null}
                   <div>
                     <dt>Dátum</dt>
                     <dd>{values.transactionDate}</dd>

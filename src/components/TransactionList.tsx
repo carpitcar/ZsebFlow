@@ -215,7 +215,10 @@ export function TransactionList({
                     {description ? ` · ${description}` : ''}
                     <span
                       className="transaction-payment-method"
-                      aria-label={getPaymentMethodLabel(paymentMethod)}
+                      aria-label={getPaymentMethodLabel(
+                        paymentMethod,
+                        transaction.type,
+                      )}
                     >
                       <PaymentMethodIcon paymentMethod={paymentMethod} />
                     </span>

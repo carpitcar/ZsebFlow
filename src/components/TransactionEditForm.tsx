@@ -7,6 +7,9 @@ import {
   isCategoryCompatibleWithTransactionType,
 } from '../lib/categoryType'
 import {
+  incomeDestinationOptions,
+  isExpensePaymentMethod,
+  isIncomeDestination,
   paymentMethodOptions,
   paymentMethodLabels,
   normalizePaymentMethod,
@@ -42,7 +45,7 @@ const getInitialValues = (transaction: Transaction): TransactionFormValues => ({
   amount: numberToMoneyInput(transaction.amount),
   currency: normalizeCurrencyCode(transaction.currency),
   paymentMethod: normalizePaymentMethod(transaction.payment_method),
-  categoryId: transaction.category_id,
+  categoryId: transaction.category_id ?? '',
   transactionDate: transaction.transaction_date,
   merchantName: transaction.merchant_name ?? '',
   note: transaction.note ?? '',
@@ -97,12 +100,23 @@ export function TransactionEditForm({
     ]
   }, [activeCurrencies, userId, values.currency])
 
+  const isExpense = values.type === 'expense'
+  const hasValidPaymentMethod = isExpense
+    ? isExpensePaymentMethod(values.paymentMethod)
+    : isIncomeDestination(values.paymentMethod)
+
   const paymentMethodSelectOptions = useMemo(
-    () => [
-      { value: 'unknown' as const, label: paymentMethodLabels.unknown },
-      ...paymentMethodOptions,
-    ],
-    [],
+    () =>
+      isExpense
+        ? [
+            { value: 'unknown' as const, label: paymentMethodLabels.unknown },
+            ...paymentMethodOptions,
+          ]
+        : [
+            { value: 'unknown' as const, label: 'Válassz érkezési helyet' },
+            ...incomeDestinationOptions,
+          ],
+    [isExpense],
   )
 
   const selectedCategoryId =
@@ -114,11 +128,12 @@ export function TransactionEditForm({
   useEffect(() => {
     if (
       values.categoryId &&
-      !isCategoryCompatibleWithTransactionType(
-        categories,
-        values.categoryId,
-        values.type,
-      )
+      (values.type === 'income' ||
+        !isCategoryCompatibleWithTransactionType(
+          categories,
+          values.categoryId,
+          values.type,
+        ))
     ) {
       setValues((currentValues) => ({
         ...currentValues,
@@ -134,13 +149,26 @@ export function TransactionEditForm({
     setValues((currentValues) => ({
       ...currentValues,
       [field]: value,
-      ...(field === 'type' &&
-      !isCategoryCompatibleWithTransactionType(
-        categories,
-        currentValues.categoryId,
-        value as TransactionType,
-      )
-        ? { categoryId: '' }
+      ...(field === 'type'
+        ? {
+            categoryId:
+              value === 'expense' &&
+              isCategoryCompatibleWithTransactionType(
+                categories,
+                currentValues.categoryId,
+                value as TransactionType,
+              )
+                ? currentValues.categoryId
+                : '',
+            paymentMethod:
+              value === 'income'
+                ? isIncomeDestination(currentValues.paymentMethod)
+                  ? currentValues.paymentMethod
+                  : 'unknown'
+                : isExpensePaymentMethod(currentValues.paymentMethod)
+                  ? currentValues.paymentMethod
+                  : 'card',
+          }
         : {}),
     }))
   }
@@ -165,7 +193,15 @@ export function TransactionEditForm({
       return
     }
 
-    if (!selectedCategoryId) {
+    if (!hasValidPaymentMethod) {
+      setMessage({
+        type: 'error',
+        text: isExpense ? 'Válassz fizetési módot.' : 'Válaszd ki, hová érkezett.',
+      })
+      return
+    }
+
+    if (isExpense && !selectedCategoryId) {
       setMessage({
         type: 'error',
         text: 'Válassz a típushoz tartozó kategóriát.',
@@ -186,7 +222,7 @@ export function TransactionEditForm({
     const { data, error } = await supabase
       .from('transactions')
       .update({
-        category_id: selectedCategoryId,
+        category_id: isExpense ? selectedCategoryId : null,
         type: values.type,
         amount,
         currency: normalizeCurrencyCode(values.currency),
@@ -282,7 +318,7 @@ export function TransactionEditForm({
           </label>
 
           <label htmlFor="editTransactionPaymentMethod">
-            Fizetési mód
+            {isExpense ? 'Fizetési mód' : 'Hová érkezett?'}
             <select
               id="editTransactionPaymentMethod"
               value={values.paymentMethod}
@@ -303,31 +339,33 @@ export function TransactionEditForm({
             </select>
           </label>
 
-          <label htmlFor="editTransactionCategory">
-            Kategória
-            <select
-              id="editTransactionCategory"
-              value={selectedCategoryId}
-              onChange={(event) =>
-                updateField('categoryId', event.target.value)
-              }
-              required
-              disabled={isSaving}
-            >
-              <option value="">Válassz kategóriát</option>
-              {matchingCategories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.icon ? `${category.icon} ` : ''}
-                  {category.name}
-                </option>
-              ))}
-            </select>
-            {matchingCategories.length === 0 ? (
-              <span className="field-hint">
-                {categoryTypeEmptyMessages[values.type]}
-              </span>
-            ) : null}
-          </label>
+          {isExpense ? (
+            <label htmlFor="editTransactionCategory">
+              Kategória
+              <select
+                id="editTransactionCategory"
+                value={selectedCategoryId}
+                onChange={(event) =>
+                  updateField('categoryId', event.target.value)
+                }
+                required
+                disabled={isSaving}
+              >
+                <option value="">Válassz kategóriát</option>
+                {matchingCategories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.icon ? `${category.icon} ` : ''}
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+              {matchingCategories.length === 0 ? (
+                <span className="field-hint">
+                  {categoryTypeEmptyMessages[values.type]}
+                </span>
+              ) : null}
+            </label>
+          ) : null}
 
           <label htmlFor="editTransactionDate">
             Dátum

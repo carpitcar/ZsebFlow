@@ -66,26 +66,28 @@ export function TransactionDetails({
             <dd>{normalizeCurrencyCode(transaction.currency)}</dd>
           </div>
           <div className="transaction-detail-row">
-            <dt>Fizetési mód</dt>
-            <dd>{getPaymentMethodLabel(transaction.payment_method)}</dd>
+            <dt>{isIncome ? 'Hová érkezett' : 'Fizetési mód'}</dt>
+            <dd>{getPaymentMethodLabel(transaction.payment_method, transaction.type)}</dd>
           </div>
-          <div className="transaction-detail-row">
-            <dt>Kategória</dt>
-            <dd>
-              <span className="detail-category-value">
-                <span
-                  className="detail-category-color"
-                  aria-hidden="true"
-                  style={{
-                    backgroundColor: normalizeCategoryColor(
-                      transaction.categories?.color,
-                    ),
-                  }}
-                />
-                <span>{transaction.categories?.name || 'Kategória nélkül'}</span>
-              </span>
-            </dd>
-          </div>
+          {!isIncome ? (
+            <div className="transaction-detail-row">
+              <dt>Kategória</dt>
+              <dd>
+                <span className="detail-category-value">
+                  <span
+                    className="detail-category-color"
+                    aria-hidden="true"
+                    style={{
+                      backgroundColor: normalizeCategoryColor(
+                        transaction.categories?.color,
+                      ),
+                    }}
+                  />
+                  <span>{transaction.categories?.name || 'Kategória nélkül'}</span>
+                </span>
+              </dd>
+            </div>
+          ) : null}
           <div className="transaction-detail-row">
             <dt>Dátum</dt>
             <dd>{formatHungarianDate(transaction.transaction_date)}</dd>

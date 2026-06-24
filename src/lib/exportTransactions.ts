@@ -63,7 +63,7 @@ export async function exportTransactionsXlsx({
       category: transaction.categories?.name ?? 'Kategória nélkül',
       merchant: transaction.merchant_name ?? '',
       note: transaction.note ?? '',
-      paymentMethod: getPaymentMethodLabel(paymentMethod),
+      paymentMethod: getPaymentMethodLabel(paymentMethod, transaction.type),
       currency: currencyCode,
       amount: signedAmount,
     })

@@ -39,7 +39,7 @@ export type Transaction = {
   id: string
   user_id: string
   account_id: string
-  category_id: string
+  category_id: string | null
   type: TransactionType
   amount: number | string
   currency: string
