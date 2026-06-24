@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { DashboardView } from './components/DashboardView'
+import { ListsView } from './components/ListsView'
 import { MobileBottomNav } from './components/MobileBottomNav'
 import { PasswordInput } from './components/PasswordInput'
 import { ProfileView } from './components/ProfileView'
@@ -11,7 +12,7 @@ import { supabase } from './lib/supabase'
 import './App.css'
 
 type AuthMode = 'login' | 'register'
-type AppView = 'dashboard' | 'profile' | 'reports'
+type AppView = 'dashboard' | 'profile' | 'reports' | 'lists'
 type Message = {
   type: 'success' | 'error'
   text: string
@@ -314,9 +315,9 @@ function App() {
         <MobileBottomNav
           activeItem="profile"
           onHome={() => setView('dashboard')}
-          onTransactions={() => setView('dashboard')}
-          onAdd={requestNewTransaction}
           onReports={() => setView('reports')}
+          onAdd={requestNewTransaction}
+          onLists={() => setView('lists')}
           onProfile={() => setView('profile')}
         />
       </>
@@ -328,7 +329,20 @@ function App() {
       <ReportsView
         userId={session.user.id}
         onOpenHome={() => setView('dashboard')}
+        onOpenLists={() => setView('lists')}
         onOpenProfile={() => setView('profile')}
+      />
+    )
+  }
+
+  if (session && view === 'lists') {
+    return (
+      <ListsView
+        userId={session.user.id}
+        onOpenHome={() => setView('dashboard')}
+        onOpenReports={() => setView('reports')}
+        onOpenProfile={() => setView('profile')}
+        onAddTransaction={requestNewTransaction}
       />
     )
   }
@@ -339,6 +353,7 @@ function App() {
         userId={session.user.id}
         newTransactionRequest={newTransactionRequest}
         onOpenReports={() => setView('reports')}
+        onOpenLists={() => setView('lists')}
         onOpenProfile={() => setView('profile')}
         onLogout={handleLogout}
         isLoggingOut={isSubmitting}

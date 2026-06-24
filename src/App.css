@@ -2674,6 +2674,271 @@ button.settings-row {
   background: #0891b2;
 }
 
+.lists-panel {
+  width: min(100%, 560px);
+  display: grid;
+  gap: 16px;
+  padding-bottom: 82px;
+}
+
+.lists-header,
+.list-detail-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+}
+
+.lists-header h1,
+.list-detail-header h1 {
+  margin: 0;
+  font-size: 26px;
+}
+
+.lists-header p,
+.list-detail-header p,
+.list-description,
+.list-due {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.compact-list-action {
+  width: auto;
+  min-height: 42px;
+  white-space: nowrap;
+}
+
+.list-tabs,
+.report-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--control-bg);
+  padding: 4px;
+}
+
+.report-tabs {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.list-tabs button,
+.report-tabs button {
+  min-height: 40px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 750;
+}
+
+.list-tabs button.active,
+.report-tabs button.active {
+  background: var(--surface);
+  color: var(--text-strong);
+  box-shadow: 0 1px 4px var(--shadow);
+}
+
+.list-card-grid,
+.list-item-list {
+  display: grid;
+  gap: 10px;
+}
+
+.list-card {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  border: 1px solid
+    color-mix(in srgb, var(--list-color, var(--border)) 36%, var(--border));
+  border-radius: 8px;
+  background: color-mix(
+    in srgb,
+    var(--surface) 92%,
+    var(--list-color, transparent)
+  );
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  padding: 12px;
+  text-align: left;
+}
+
+.list-card.overdue,
+.list-due.overdue,
+.list-item-row.overdue strong {
+  color: var(--danger-text);
+}
+
+.list-card-icon,
+.list-icon {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--list-color, var(--accent));
+  color: #fff;
+  font-size: 20px;
+  font-weight: 850;
+}
+
+.list-card-main,
+.list-item-row button {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.list-card-main strong,
+.list-card-main small,
+.list-card-main span,
+.list-card-main em,
+.list-item-row strong,
+.list-item-row span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.list-card-main strong,
+.list-item-row strong {
+  color: var(--text-strong);
+}
+
+.list-card-main small,
+.list-card-main span,
+.list-card-main em,
+.list-item-row span {
+  color: var(--muted);
+  font-size: 13px;
+  font-style: normal;
+}
+
+.list-progress {
+  width: 100%;
+  height: 7px;
+  display: block;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--control-bg);
+}
+
+.list-progress span,
+.list-progress b {
+  height: 100%;
+  display: block;
+  border-radius: inherit;
+  background: var(--accent);
+}
+
+.list-detail-header {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.list-detail-header > div {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.list-detail-header h1,
+.list-detail-header p {
+  grid-column: 2;
+}
+
+.list-detail-header .list-icon {
+  grid-row: 1 / span 2;
+}
+
+.quick-item-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 48px;
+  gap: 8px;
+}
+
+.quick-item-form button {
+  min-height: 46px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 24px;
+  font-weight: 850;
+}
+
+.quick-item-form button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.list-item-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 10px;
+}
+
+.list-item-row input[type='checkbox'] {
+  width: 22px;
+  height: 22px;
+  min-height: 22px;
+  padding: 0;
+}
+
+.list-item-row > button:not(.compact-button) {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+  text-align: left;
+}
+
+.list-item-row.completed {
+  opacity: 0.64;
+}
+
+.list-item-row.completed strong {
+  text-decoration: line-through;
+}
+
+.list-actions,
+.list-form-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.list-sheet {
+  width: min(100%, 520px);
+}
+
+.list-form {
+  display: grid;
+  gap: 14px;
+}
+
 @media (max-width: 640px) {
   .app-shell {
     align-items: start;

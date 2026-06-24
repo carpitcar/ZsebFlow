@@ -35,6 +35,7 @@ type DashboardViewProps = {
   userId: string
   newTransactionRequest: number
   onOpenReports: () => void
+  onOpenLists: () => void
   onOpenProfile: () => void
   onLogout: () => Promise<void>
   isLoggingOut: boolean
@@ -50,6 +51,7 @@ export function DashboardView({
   userId,
   newTransactionRequest,
   onOpenReports,
+  onOpenLists,
   onOpenProfile,
   onLogout,
   isLoggingOut,
@@ -70,8 +72,6 @@ export function DashboardView({
   const [dateFrom, setDateFrom] = useState(initialMonthRange.firstDay)
   const [dateTo, setDateTo] = useState(initialMonthRange.lastDay)
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null)
-  const [activeNavItem, setActiveNavItem] =
-    useState<'home' | 'transactions' | 'reports'>('home')
   const [listError, setListError] = useState<string | null>(null)
   const [message, setMessage] = useState<Message | null>(null)
 
@@ -367,20 +367,15 @@ export function DashboardView({
       </section>
 
       <MobileBottomNav
-        activeItem={activeNavItem}
+        activeItem="home"
         onHome={() => {
-          setActiveNavItem('home')
           scrollToHomeSection()
         }}
-        onTransactions={() => {
-          setActiveNavItem('transactions')
-          scrollToHomeSection('transactions-section')
-        }}
-        onAdd={() => setIsFormOpen(true)}
         onReports={() => {
-          setActiveNavItem('reports')
           onOpenReports()
         }}
+        onAdd={() => setIsFormOpen(true)}
+        onLists={onOpenLists}
         onProfile={onOpenProfile}
       />
 

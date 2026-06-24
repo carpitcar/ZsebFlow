@@ -1,16 +1,16 @@
 type MobileBottomNavItem = {
-  id: 'home' | 'transactions' | 'reports' | 'profile'
-  label: 'Home' | 'Tételek' | 'Riportok' | 'Profil'
-  icon: 'home' | 'list' | 'chart' | 'user'
+  id: 'home' | 'reports' | 'lists' | 'profile'
+  label: 'Home' | 'Riportok' | 'Listák' | 'Profil'
+  icon: 'home' | 'chart' | 'list' | 'user'
   onClick: () => void
 }
 
 type MobileBottomNavProps = {
   activeItem: MobileBottomNavItem['id']
   onHome: () => void
-  onTransactions: () => void
-  onAdd: () => void
   onReports: () => void
+  onAdd: () => void
+  onLists: () => void
   onProfile: () => void
 }
 
@@ -53,15 +53,15 @@ function NavIcon({ icon }: { icon: MobileBottomNavItem['icon'] }) {
 export function MobileBottomNav({
   activeItem,
   onHome,
-  onTransactions,
-  onAdd,
   onReports,
+  onAdd,
+  onLists,
   onProfile,
 }: MobileBottomNavProps) {
   const items: MobileBottomNavItem[] = [
     { id: 'home', label: 'Home', icon: 'home', onClick: onHome },
-    { id: 'transactions', label: 'Tételek', icon: 'list', onClick: onTransactions },
     { id: 'reports', label: 'Riportok', icon: 'chart', onClick: onReports },
+    { id: 'lists', label: 'Listák', icon: 'list', onClick: onLists },
     { id: 'profile', label: 'Profil', icon: 'user', onClick: onProfile },
   ]
 

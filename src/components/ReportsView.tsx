@@ -31,10 +31,12 @@ import { MobileBottomNav } from './MobileBottomNav'
 import { TransactionDetails } from './TransactionDetails'
 import { TransactionEditForm } from './TransactionEditForm'
 import { TransactionWizard } from './TransactionWizard'
+import { TransactionList } from './TransactionList'
 
 type ReportsViewProps = {
   userId: string
   onOpenHome: () => void
+  onOpenLists: () => void
   onOpenProfile: () => void
 }
 
@@ -179,6 +181,7 @@ const getTrendBuckets = (
 export function ReportsView({
   userId,
   onOpenHome,
+  onOpenLists,
   onOpenProfile,
 }: ReportsViewProps) {
   const initialRange = getCurrentMonthRange()
@@ -199,6 +202,8 @@ export function ReportsView({
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [message, setMessage] = useState<Message | null>(null)
+  const [activeSection, setActiveSection] =
+    useState<'summary' | 'transactions'>('summary')
 
   const loadReports = useCallback(async () => {
     const requestId = ++loadRequestRef.current
@@ -600,12 +605,48 @@ export function ReportsView({
           </label>
         </section>
 
+        <div className="report-tabs" aria-label="Riport nézet">
+          <button
+            className={activeSection === 'summary' ? 'active' : ''}
+            type="button"
+            onClick={() => setActiveSection('summary')}
+          >
+            Összesítés
+          </button>
+          <button
+            className={activeSection === 'transactions' ? 'active' : ''}
+            type="button"
+            onClick={() => setActiveSection('transactions')}
+          >
+            Tételek
+          </button>
+        </div>
+
         {message ? (
           <p className={`message ${message.type}`} role="status">
             {message.text}
           </p>
         ) : null}
 
+        {activeSection === 'transactions' ? (
+          <TransactionList
+            title="Tételek"
+            transactions={transactions}
+            isLoading={isLoading}
+            error={message?.type === 'error' ? message.text : null}
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+            isExporting={isExporting}
+            onSelect={(transaction) => {
+              setSelectedTransaction(transaction)
+              setIsEditOpen(false)
+            }}
+            onDateFromChange={handleDateFromChange}
+            onDateToChange={handleDateToChange}
+            onExport={handleExport}
+          />
+        ) : (
+          <>
         <section className="report-summary-grid" aria-label="Összesítés">
           <article>
             <span>Bevétel</span>
@@ -741,14 +782,16 @@ export function ReportsView({
             </section>
           </>
         )}
+          </>
+        )}
       </section>
 
       <MobileBottomNav
         activeItem="reports"
         onHome={onOpenHome}
-        onTransactions={onOpenHome}
-        onAdd={() => setIsFormOpen(true)}
         onReports={() => undefined}
+        onAdd={() => setIsFormOpen(true)}
+        onLists={onOpenLists}
         onProfile={onOpenProfile}
       />
 
