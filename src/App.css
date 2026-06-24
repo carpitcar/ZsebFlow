@@ -341,8 +341,14 @@ textarea[aria-invalid='true'] {
 }
 
 .subtle-text,
-.empty-state {
+.empty-state,
+.field-hint {
   color: var(--muted);
+}
+
+.field-hint {
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .empty-state {

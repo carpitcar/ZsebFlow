@@ -10,6 +10,11 @@ import { formatHungarianDate, formatLocalDateInput } from '../lib/date'
 import { parseMoneyInput } from '../lib/money'
 import { useVisualViewport } from '../hooks/useVisualViewport'
 import {
+  categoryMatchesTransactionType,
+  categoryTypeEmptyMessages,
+  isCategoryCompatibleWithTransactionType,
+} from '../lib/categoryType'
+import {
   getPaymentMethodLabel,
   normalizePaymentMethod,
   paymentMethodOptions,
@@ -122,7 +127,10 @@ export function TransactionWizard({
   )
 
   const matchingCategories = useMemo(
-    () => categories.filter((category) => category.type === values.type),
+    () =>
+      categories.filter((category) =>
+        categoryMatchesTransactionType(category, values.type),
+      ),
     [categories, values.type],
   )
 
@@ -134,6 +142,22 @@ export function TransactionWizard({
   )
 
   const selectedCategoryId = selectedCategory?.id ?? ''
+
+  useEffect(() => {
+    if (
+      values.categoryId &&
+      !isCategoryCompatibleWithTransactionType(
+        categories,
+        values.categoryId,
+        values.type,
+      )
+    ) {
+      setValues((currentValues) => ({
+        ...currentValues,
+        categoryId: '',
+      }))
+    }
+  }, [categories, values.categoryId, values.type])
 
   const currencyOptions = useMemo(() => {
     const normalizedValue = normalizeCurrencyCode(values.currency)
@@ -184,8 +208,10 @@ export function TransactionWizard({
       ...currentValues,
       [field]: value,
       ...(field === 'type' &&
-      !categories.some(
-        (category) => category.id === currentValues.categoryId && category.type === value,
+      !isCategoryCompatibleWithTransactionType(
+        categories,
+        currentValues.categoryId,
+        value as TransactionType,
       )
         ? { categoryId: '' }
         : {}),
@@ -714,7 +740,7 @@ export function TransactionWizard({
 
                   {matchingCategories.length === 0 ? (
                     <p className="wizard-category-empty" role="status">
-                      Még nincs használható kategória.
+                      {categoryTypeEmptyMessages[values.type]}
                     </p>
                   ) : null}
 
@@ -772,7 +798,7 @@ export function TransactionWizard({
 
                 {matchingCategories.length === 0 ? (
                   <p className="wizard-category-empty" role="status">
-                    Még nincs használható kategória.
+                    {categoryTypeEmptyMessages[values.type]}
                   </p>
                 ) : (
                   <div className="wizard-category-picker">

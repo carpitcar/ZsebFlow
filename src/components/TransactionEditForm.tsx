@@ -1,6 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { normalizeCurrencyCode } from '../lib/currency'
+import {
+  categoryMatchesTransactionType,
+  categoryTypeEmptyMessages,
+  isCategoryCompatibleWithTransactionType,
+} from '../lib/categoryType'
 import {
   paymentMethodOptions,
   paymentMethodLabels,
@@ -58,7 +63,10 @@ export function TransactionEditForm({
   const [message, setMessage] = useState<Message | null>(null)
 
   const matchingCategories = useMemo(
-    () => categories.filter((category) => category.type === values.type),
+    () =>
+      categories.filter((category) =>
+        categoryMatchesTransactionType(category, values.type),
+      ),
     [categories, values.type],
   )
 
@@ -103,6 +111,22 @@ export function TransactionEditForm({
       ? values.categoryId
       : ''
 
+  useEffect(() => {
+    if (
+      values.categoryId &&
+      !isCategoryCompatibleWithTransactionType(
+        categories,
+        values.categoryId,
+        values.type,
+      )
+    ) {
+      setValues((currentValues) => ({
+        ...currentValues,
+        categoryId: '',
+      }))
+    }
+  }, [categories, values.categoryId, values.type])
+
   const updateField = (
     field: keyof TransactionFormValues,
     value: string,
@@ -110,7 +134,14 @@ export function TransactionEditForm({
     setValues((currentValues) => ({
       ...currentValues,
       [field]: value,
-      ...(field === 'type' ? { categoryId: '' } : {}),
+      ...(field === 'type' &&
+      !isCategoryCompatibleWithTransactionType(
+        categories,
+        currentValues.categoryId,
+        value as TransactionType,
+      )
+        ? { categoryId: '' }
+        : {}),
     }))
   }
 
@@ -291,6 +322,11 @@ export function TransactionEditForm({
                 </option>
               ))}
             </select>
+            {matchingCategories.length === 0 ? (
+              <span className="field-hint">
+                {categoryTypeEmptyMessages[values.type]}
+              </span>
+            ) : null}
           </label>
 
           <label htmlFor="editTransactionDate">
