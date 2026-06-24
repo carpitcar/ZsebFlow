@@ -6,7 +6,7 @@ import type {
   KeyboardEvent,
 } from 'react'
 import { formatCurrency, normalizeCurrencyCode } from '../lib/currency'
-import { formatLocalDateInput } from '../lib/date'
+import { formatHungarianDate, formatLocalDateInput } from '../lib/date'
 import { parseMoneyInput } from '../lib/money'
 import { useVisualViewport } from '../hooks/useVisualViewport'
 import {
@@ -379,6 +379,10 @@ export function TransactionWizard({
   const handleSheetKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     if (event.key === 'Escape') {
       event.preventDefault()
+      if (isCategoryPickerOpen) {
+        setIsCategoryPickerOpen(false)
+        return
+      }
       handleClose()
       return
     }
@@ -442,6 +446,10 @@ export function TransactionWizard({
         type="button"
         onClick={() => {
           setMessage(null)
+          if (isCategoryPickerOpen) {
+            setIsCategoryPickerOpen(false)
+            return
+          }
           setStep((currentStep) => Math.max(1, currentStep - 1))
         }}
         disabled={isSaving}
@@ -640,7 +648,7 @@ export function TransactionWizard({
               </section>
             ) : null}
 
-            {step === 3 ? (
+            {step === 3 && !isCategoryPickerOpen ? (
               <section className="wizard-step" aria-label="Fizetés, kategória és dátum">
                 <div className="wizard-field-group">
                   <span className="wizard-field-label">Fizetési mód</span>
@@ -649,9 +657,12 @@ export function TransactionWizard({
                       <button
                         key={option.value}
                         type="button"
-                        className={
-                          values.paymentMethod === option.value ? 'active' : ''
-                        }
+                        className={[
+                          'wizard-payment-option',
+                          values.paymentMethod === option.value ? 'active' : '',
+                        ]
+                          .filter(Boolean)
+                          .join(' ')}
                         onClick={() =>
                           updateField('paymentMethod', option.value as PaymentMethod)
                         }
@@ -673,9 +684,7 @@ export function TransactionWizard({
                       .filter(Boolean)
                       .join(' ')}
                     type="button"
-                    onClick={() =>
-                      setIsCategoryPickerOpen((isOpen) => !isOpen)
-                    }
+                    onClick={() => setIsCategoryPickerOpen(true)}
                     aria-expanded={isCategoryPickerOpen}
                     aria-controls="transactionCategoryPicker"
                     disabled={matchingCategories.length === 0}
@@ -709,43 +718,27 @@ export function TransactionWizard({
                     </p>
                   ) : null}
 
-                  {isCategoryPickerOpen ? (
-                    <div
-                      className="wizard-category-picker"
-                      id="transactionCategoryPicker"
-                    >
-                      {matchingCategories.map((category) => (
-                        <button
-                          key={category.id}
-                          type="button"
-                          className={
-                            selectedCategoryId === category.id ? 'active' : ''
-                          }
-                          onClick={() => handleCategorySelect(category.id)}
-                          aria-pressed={selectedCategoryId === category.id}
-                          style={
-                            {
-                              '--category-color': category.color,
-                            } as CSSProperties
-                          }
-                        >
-                          <span
-                            className="wizard-category-icon"
-                            style={{ backgroundColor: category.color }}
-                            aria-hidden="true"
-                          >
-                            {category.icon || '•'}
-                          </span>
-                          <span>{category.name}</span>
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
                 </div>
 
-                <label htmlFor="transactionDate">
-                  Dátum
+                <label className="wizard-field-group" htmlFor="transactionDate">
+                  <span className="wizard-field-label">Dátum</span>
+                  <span className="wizard-date-select">
+                    <span className="wizard-field-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24">
+                        <rect x="4.5" y="5.5" width="15" height="14" rx="2" />
+                        <path d="M8 3.8v3.4M16 3.8v3.4M4.5 10h15" />
+                      </svg>
+                    </span>
+                    <span className="wizard-date-select-text">
+                      {values.transactionDate
+                        ? formatHungarianDate(values.transactionDate)
+                        : 'Válassz dátumot'}
+                    </span>
+                    <span className="wizard-category-chevron" aria-hidden="true">
+                      ›
+                    </span>
                   <input
+                    className="wizard-date-input"
                     id="transactionDate"
                     type="date"
                     value={values.transactionDate}
@@ -754,7 +747,62 @@ export function TransactionWizard({
                     }
                     required
                   />
+                  </span>
                 </label>
+              </section>
+            ) : null}
+
+            {step === 3 && isCategoryPickerOpen ? (
+              <section
+                className="wizard-step wizard-category-sheet"
+                aria-label="Kategória kiválasztása"
+                id="transactionCategoryPicker"
+              >
+                <div className="wizard-category-sheet-header">
+                  <button
+                    className="wizard-category-sheet-back"
+                    type="button"
+                    onClick={() => setIsCategoryPickerOpen(false)}
+                    aria-label="Vissza a részletekhez"
+                  >
+                    ‹
+                  </button>
+                  <h3>Válassz kategóriát</h3>
+                </div>
+
+                {matchingCategories.length === 0 ? (
+                  <p className="wizard-category-empty" role="status">
+                    Még nincs használható kategória.
+                  </p>
+                ) : (
+                  <div className="wizard-category-picker">
+                    {matchingCategories.map((category) => (
+                      <button
+                        key={category.id}
+                        type="button"
+                        className={
+                          selectedCategoryId === category.id ? 'active' : ''
+                        }
+                        onClick={() => handleCategorySelect(category.id)}
+                        aria-pressed={selectedCategoryId === category.id}
+                        style={
+                          {
+                            '--category-color': category.color,
+                          } as CSSProperties
+                        }
+                      >
+                        <span
+                          className="wizard-category-icon"
+                          style={{ backgroundColor: category.color }}
+                          aria-hidden="true"
+                        >
+                          {category.icon || '•'}
+                        </span>
+                        <span>{category.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </section>
             ) : null}
 
@@ -814,7 +862,7 @@ export function TransactionWizard({
             ) : null}
           </div>
 
-          {step > 1 ? (
+          {step > 1 && !isCategoryPickerOpen ? (
             <div className="wizard-footer">{renderPrimaryAction()}</div>
           ) : null}
         </form>

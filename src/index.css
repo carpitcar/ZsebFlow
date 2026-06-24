@@ -8,7 +8,8 @@
   --muted: #64748b;
   --border: #e2e8f0;
   --border-strong: #cbd5e1;
-  --input-border-color: rgba(0, 0, 0, 0.85);
+  --control-border-subtle: rgba(0, 0, 0, 0.35);
+  --input-border-color: rgba(0, 0, 0, 0.75);
   --input-focus-color: var(--focus);
   --control-bg: #f1f5f9;
   --shadow: rgba(18, 22, 33, 0.08);
@@ -40,7 +41,8 @@
   --muted: #94a3b8;
   --border: #243147;
   --border-strong: #334155;
-  --input-border-color: rgba(255, 255, 255, 0.85);
+  --control-border-subtle: rgba(255, 255, 255, 0.42);
+  --input-border-color: rgba(255, 255, 255, 0.75);
   --input-focus-color: var(--focus);
   --control-bg: #172033;
   --shadow: rgba(0, 0, 0, 0.32);
@@ -62,7 +64,8 @@
     --muted: #94a3b8;
     --border: #243147;
     --border-strong: #334155;
-    --input-border-color: rgba(255, 255, 255, 0.85);
+    --control-border-subtle: rgba(255, 255, 255, 0.42);
+    --input-border-color: rgba(255, 255, 255, 0.75);
     --input-focus-color: var(--focus);
     --control-bg: #172033;
     --shadow: rgba(0, 0, 0, 0.32);
