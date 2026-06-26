@@ -53,6 +53,10 @@ const priorityLabels: Record<ListPriority, string> = {
   high: 'Magas',
 }
 
+const defaultShoppingUnit = 'db'
+
+const commonShoppingUnits = ['db', 'kg', 'g', 'l', 'ml', 'csomag', 'üveg', 'doboz']
+
 const getCompletion = (items: ListItem[]) => {
   const completed = items.filter((item) => item.is_completed).length
   const total = items.length
@@ -82,6 +86,31 @@ const getDueState = (dateValue: string | null) => {
   return isPastDate(dateValue) ? 'Lejárt' : 'Esedékes'
 }
 
+const parseOptionalQuantity = (quantity: string) => {
+  const trimmedQuantity = quantity.trim()
+
+  if (!trimmedQuantity) {
+    return null
+  }
+
+  const parsedQuantity = Number(trimmedQuantity.replace(',', '.'))
+  return Number.isFinite(parsedQuantity) ? parsedQuantity : Number.NaN
+}
+
+const formatItemQuantity = (quantity: ListItem['quantity'], unit: string | null) => {
+  if (quantity == null || String(quantity).trim() === '') {
+    return ''
+  }
+
+  const parsedQuantity = Number(String(quantity))
+  const quantityLabel = Number.isFinite(parsedQuantity)
+    ? parsedQuantity.toString()
+    : String(quantity)
+  const unitLabel = unit?.trim()
+
+  return unitLabel ? `${quantityLabel} ${unitLabel}` : quantityLabel
+}
+
 export function ListsView({
   userId,
   onOpenHome,
@@ -102,6 +131,11 @@ export function ListsView({
   const [activeTab, setActiveTab] = useState<ListTab>('active')
   const [message, setMessage] = useState<Message | null>(null)
   const [newItemTitle, setNewItemTitle] = useState('')
+  const [newShoppingItem, setNewShoppingItem] = useState({
+    title: '',
+    quantity: '',
+    unit: defaultShoppingUnit,
+  })
   const [listForm, setListForm] = useState({
     title: '',
     description: '',
@@ -120,6 +154,7 @@ export function ListsView({
   })
 
   const selectedList = lists.find((list) => list.id === selectedListId) ?? null
+  const isShoppingList = selectedList?.list_type === 'shopping'
 
   const filteredLists = useMemo(() => {
     if (activeTab === 'archived') {
@@ -342,8 +377,22 @@ export function ListsView({
       return
     }
 
-    const title = newItemTitle.trim()
+    const title = isShoppingList
+      ? newShoppingItem.title.trim()
+      : newItemTitle.trim()
     if (!title) {
+      return
+    }
+
+    const quantity = isShoppingList
+      ? parseOptionalQuantity(newShoppingItem.quantity)
+      : null
+
+    if (Number.isNaN(quantity) || (quantity != null && quantity < 0)) {
+      setMessage({
+        type: 'error',
+        text: 'A mennyiség nem lehet negatív szám.',
+      })
       return
     }
 
@@ -352,6 +401,12 @@ export function ListsView({
     const { data, error } = await createListItem({
       list_id: selectedList.id,
       title,
+      ...(isShoppingList
+        ? {
+            quantity,
+            unit: newShoppingItem.unit.trim() || null,
+          }
+        : {}),
       sort_order: selectedList.items.length,
     })
 
@@ -365,7 +420,15 @@ export function ListsView({
         ...selectedList,
         items: [...selectedList.items, data],
       })
-      setNewItemTitle('')
+      if (isShoppingList) {
+        setNewShoppingItem({
+          title: '',
+          quantity: '',
+          unit: defaultShoppingUnit,
+        })
+      } else {
+        setNewItemTitle('')
+      }
     }
     setIsSaving(false)
     createItemLockRef.current = false
@@ -417,15 +480,33 @@ export function ListsView({
       return
     }
 
+    const quantity = parseOptionalQuantity(itemForm.quantity)
+    if (Number.isNaN(quantity) || (quantity != null && quantity < 0)) {
+      setMessage({
+        type: 'error',
+        text: 'A mennyiség nem lehet negatív szám.',
+      })
+      return
+    }
+
     setIsSaving(true)
-    const { data, error } = await updateListItem(editingItem.id, {
-      title,
-      notes: itemForm.notes.trim() || null,
-      quantity: itemForm.quantity ? Number(itemForm.quantity) : null,
-      unit: itemForm.unit.trim() || null,
-      due_at: itemForm.dueAt ? new Date(itemForm.dueAt).toISOString() : null,
-      priority: itemForm.priority,
-    })
+    const { data, error } = await updateListItem(
+      editingItem.id,
+      isShoppingList
+        ? {
+            title,
+            quantity,
+            unit: itemForm.unit.trim() || null,
+          }
+        : {
+            title,
+            notes: itemForm.notes.trim() || null,
+            quantity,
+            unit: itemForm.unit.trim() || null,
+            due_at: itemForm.dueAt ? new Date(itemForm.dueAt).toISOString() : null,
+            priority: itemForm.priority,
+          },
+    )
 
     if (error || !data) {
       setMessage({
@@ -611,15 +692,90 @@ export function ListsView({
             <span style={{ width: `${completion.percentage}%` }} />
           </div>
 
-          <form className="quick-item-form" onSubmit={handleCreateItem}>
-            <input
-              value={newItemTitle}
-              onChange={(event) => setNewItemTitle(event.target.value)}
-              placeholder="Új elem hozzáadása..."
-            />
-            <button type="submit" disabled={isSaving || !newItemTitle.trim()}>
-              +
-            </button>
+          <form
+            className={[
+              'quick-item-form',
+              isShoppingList ? 'shopping-quick-item-form' : '',
+            ].filter(Boolean).join(' ')}
+            onSubmit={handleCreateItem}
+          >
+            {isShoppingList ? (
+              <>
+                <label className="quick-item-title-field" htmlFor="shoppingItemTitle">
+                  Mit vegyünk?
+                  <input
+                    id="shoppingItemTitle"
+                    value={newShoppingItem.title}
+                    onChange={(event) =>
+                      setNewShoppingItem((item) => ({
+                        ...item,
+                        title: event.target.value,
+                      }))
+                    }
+                    placeholder="Tej"
+                    required
+                  />
+                </label>
+                <div className="quick-item-measure-fields">
+                  <label htmlFor="shoppingItemQuantity">
+                    Mennyiség
+                    <input
+                      id="shoppingItemQuantity"
+                      type="number"
+                      min="0"
+                      step="any"
+                      inputMode="decimal"
+                      value={newShoppingItem.quantity}
+                      onChange={(event) =>
+                        setNewShoppingItem((item) => ({
+                          ...item,
+                          quantity: event.target.value,
+                        }))
+                      }
+                      placeholder="2"
+                    />
+                  </label>
+                  <label htmlFor="shoppingItemUnit">
+                    Egység
+                    <input
+                      id="shoppingItemUnit"
+                      value={newShoppingItem.unit}
+                      onChange={(event) =>
+                        setNewShoppingItem((item) => ({
+                          ...item,
+                          unit: event.target.value,
+                        }))
+                      }
+                      list="shoppingUnitOptions"
+                      placeholder={defaultShoppingUnit}
+                    />
+                  </label>
+                  <button
+                    type="submit"
+                    disabled={isSaving || !newShoppingItem.title.trim()}
+                    aria-label="Elem hozzáadása"
+                  >
+                    +
+                  </button>
+                </div>
+                <datalist id="shoppingUnitOptions">
+                  {commonShoppingUnits.map((unit) => (
+                    <option key={unit} value={unit} />
+                  ))}
+                </datalist>
+              </>
+            ) : (
+              <>
+                <input
+                  value={newItemTitle}
+                  onChange={(event) => setNewItemTitle(event.target.value)}
+                  placeholder="Új elem hozzáadása..."
+                />
+                <button type="submit" disabled={isSaving || !newItemTitle.trim()}>
+                  +
+                </button>
+              </>
+            )}
           </form>
 
           {message ? <p className={`message ${message.type}`}>{message.text}</p> : null}
@@ -628,10 +784,19 @@ export function ListsView({
             {[...openItems, ...completedItems].map((item) => {
               const dueDate = item.due_at?.slice(0, 10) ?? null
               const overdue = !item.is_completed && isPastDate(dueDate)
+              const quantityLabel = formatItemQuantity(item.quantity, item.unit)
+              const itemMeta = isShoppingList
+                ? ''
+                : [
+                    quantityLabel,
+                    dueDate ? formatCompactDate(dueDate) : '',
+                    item.priority !== 'normal' ? priorityLabels[item.priority] : '',
+                  ].filter(Boolean).join(' ')
               return (
                 <article
                   className={[
                     'list-item-row',
+                    isShoppingList ? 'shopping-list-item-row' : '',
                     item.is_completed ? 'completed' : '',
                     overdue ? 'overdue' : '',
                   ].filter(Boolean).join(' ')}
@@ -645,12 +810,11 @@ export function ListsView({
                   />
                   <button type="button" onClick={() => openItemEdit(item)}>
                     <strong>{item.title}</strong>
-                    <span>
-                      {item.quantity ? `${item.quantity} ${item.unit ?? ''}` : ''}
-                      {dueDate ? ` ${formatCompactDate(dueDate)}` : ''}
-                      {item.priority !== 'normal' ? ` ${priorityLabels[item.priority]}` : ''}
-                    </span>
+                    {itemMeta ? <span>{itemMeta}</span> : null}
                   </button>
+                  {isShoppingList && quantityLabel ? (
+                    <span className="shopping-item-quantity">{quantityLabel}</span>
+                  ) : null}
                   <button
                     className="secondary-button compact-button"
                     type="button"
@@ -712,7 +876,13 @@ export function ListsView({
                   Bezárás
                 </button>
               </div>
-              <form className="list-form" onSubmit={handleUpdateItem}>
+              <form
+                className={[
+                  'list-form',
+                  isShoppingList ? 'shopping-item-edit-form' : '',
+                ].filter(Boolean).join(' ')}
+                onSubmit={handleUpdateItem}
+              >
                 <label htmlFor="itemTitle">
                   Név
                   <input
@@ -724,17 +894,19 @@ export function ListsView({
                     required
                   />
                 </label>
-                <label htmlFor="itemNotes">
-                  Jegyzet
-                  <textarea
-                    id="itemNotes"
-                    value={itemForm.notes}
-                    onChange={(event) =>
-                      setItemForm((form) => ({ ...form, notes: event.target.value }))
-                    }
-                    rows={3}
-                  />
-                </label>
+                {!isShoppingList ? (
+                  <label htmlFor="itemNotes">
+                    Jegyzet
+                    <textarea
+                      id="itemNotes"
+                      value={itemForm.notes}
+                      onChange={(event) =>
+                        setItemForm((form) => ({ ...form, notes: event.target.value }))
+                      }
+                      rows={3}
+                    />
+                  </label>
+                ) : null}
                 <div className="list-form-row">
                   <label htmlFor="itemQuantity">
                     Mennyiség
@@ -742,7 +914,8 @@ export function ListsView({
                       id="itemQuantity"
                       type="number"
                       min="0"
-                      step="0.01"
+                      step="any"
+                      inputMode="decimal"
                       value={itemForm.quantity}
                       onChange={(event) =>
                         setItemForm((form) => ({
@@ -757,42 +930,52 @@ export function ListsView({
                     <input
                       id="itemUnit"
                       value={itemForm.unit}
+                      list="shoppingUnitEditOptions"
                       onChange={(event) =>
                         setItemForm((form) => ({ ...form, unit: event.target.value }))
                       }
                     />
                   </label>
                 </div>
-                <label htmlFor="itemDueAt">
-                  Határidő
-                  <input
-                    id="itemDueAt"
-                    type="datetime-local"
-                    value={itemForm.dueAt}
-                    onChange={(event) =>
-                      setItemForm((form) => ({ ...form, dueAt: event.target.value }))
-                    }
-                  />
-                </label>
-                <label htmlFor="itemPriority">
-                  Prioritás
-                  <select
-                    id="itemPriority"
-                    value={itemForm.priority}
-                    onChange={(event) =>
-                      setItemForm((form) => ({
-                        ...form,
-                        priority: event.target.value as ListPriority,
-                      }))
-                    }
-                  >
-                    {Object.entries(priorityLabels).map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <datalist id="shoppingUnitEditOptions">
+                  {commonShoppingUnits.map((unit) => (
+                    <option key={unit} value={unit} />
+                  ))}
+                </datalist>
+                {!isShoppingList ? (
+                  <>
+                    <label htmlFor="itemDueAt">
+                      Határidő
+                      <input
+                        id="itemDueAt"
+                        type="datetime-local"
+                        value={itemForm.dueAt}
+                        onChange={(event) =>
+                          setItemForm((form) => ({ ...form, dueAt: event.target.value }))
+                        }
+                      />
+                    </label>
+                    <label htmlFor="itemPriority">
+                      Prioritás
+                      <select
+                        id="itemPriority"
+                        value={itemForm.priority}
+                        onChange={(event) =>
+                          setItemForm((form) => ({
+                            ...form,
+                            priority: event.target.value as ListPriority,
+                          }))
+                        }
+                      >
+                        {Object.entries(priorityLabels).map(([value, label]) => (
+                          <option key={value} value={value}>
+                            {label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </>
+                ) : null}
                 <button className="primary-button" type="submit" disabled={isSaving}>
                   {isSaving ? 'Mentés...' : 'Mentés'}
                 </button>

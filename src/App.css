@@ -2869,6 +2869,24 @@ button.settings-row {
   gap: 8px;
 }
 
+.shopping-quick-item-form {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+
+.quick-item-title-field,
+.quick-item-measure-fields label {
+  min-width: 0;
+}
+
+.quick-item-measure-fields {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1fr) 48px;
+  gap: 8px;
+  align-items: end;
+}
+
 .quick-item-form button {
   min-height: 46px;
   border: 0;
@@ -2884,6 +2902,10 @@ button.settings-row {
 .quick-item-form button:disabled {
   cursor: not-allowed;
   opacity: 0.58;
+}
+
+.shopping-quick-item-form input {
+  width: 100%;
 }
 
 .list-item-row {
@@ -2913,6 +2935,22 @@ button.settings-row {
   font: inherit;
   padding: 0;
   text-align: left;
+}
+
+.shopping-list-item-row {
+  grid-template-columns: 28px minmax(0, 1fr) auto auto;
+}
+
+.shopping-list-item-row > button:not(.compact-button) span {
+  display: none;
+}
+
+.shopping-item-quantity {
+  justify-self: end;
+  color: var(--text-strong);
+  font-size: 14px;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
 .list-item-row.completed {
