@@ -3,6 +3,7 @@ import {
   CategoryFilterBar,
   type CategoryFilterOption,
 } from './CategoryFilterBar'
+import { BrandHeader } from './BrandHeader'
 import { MonthSwitcher } from './MonthSwitcher'
 import { RecentTransactionList } from './RecentTransactionList'
 
@@ -13,6 +14,7 @@ type HomeDashboardProps = {
   transactions: Transaction[]
   listError: string | null
   onMonthChange: (amount: number) => void
+  onOpenHome: () => void
   onCategoryFilterChange: (categoryId: string | null) => void
   onSelectTransaction: (transaction: Transaction) => void
 }
@@ -24,12 +26,13 @@ export function HomeDashboard({
   transactions,
   listError,
   onMonthChange,
+  onOpenHome,
   onCategoryFilterChange,
   onSelectTransaction,
 }: HomeDashboardProps) {
   return (
     <div className="home-dashboard">
-      <h1 className="home-brand-title">ZsebFlow</h1>
+      <BrandHeader onHome={onOpenHome} />
 
       <MonthSwitcher
         label={activePeriodHeading}

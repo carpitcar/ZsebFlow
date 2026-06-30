@@ -9,6 +9,7 @@ import { supabase } from '../lib/supabase'
 import { ensureInitialUserCurrencies, getDefaultCurrency } from '../lib/userCurrencies'
 import type { AccentOption, ThemeOption } from '../types/appearance'
 import type { UserCurrency } from '../types/finance'
+import { BrandHeader } from './BrandHeader'
 import { CategoryManager } from './CategoryManager'
 
 type Option<TValue extends string> = {
@@ -100,14 +101,14 @@ function CompactSettingsHeader({
       >
         <ArrowLeftIcon />
       </button>
-      <button
-        className="settings-brand-button"
-        type="button"
-        onClick={onBrandClick}
-      >
-        <strong>ZsebFlow</strong>
+      <div className="settings-brand-group">
+        <BrandHeader
+          section="Profil"
+          className="settings-brand-header"
+          onHome={onBrandClick}
+        />
         <span>{subtitle}</span>
-      </button>
+      </div>
     </header>
   )
 }

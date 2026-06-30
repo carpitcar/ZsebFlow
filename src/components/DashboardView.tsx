@@ -320,7 +320,10 @@ export function DashboardView({
     return (
       <main className="app-shell page-shell">
         <section className="dashboard-panel">
-          <AppHeader onProfile={onOpenProfile} />
+          <AppHeader
+            onBrandClick={scrollToHomeSection}
+            onProfile={onOpenProfile}
+          />
           {message ? (
             <p className={`message ${message.type}`} role="status">
               {message.text}
@@ -352,6 +355,7 @@ export function DashboardView({
           transactions={filteredTransactions}
           listError={listError}
           onMonthChange={handleMonthChange}
+          onOpenHome={scrollToHomeSection}
           onCategoryFilterChange={setActiveCategoryId}
           onSelectTransaction={(transaction) => {
             setSelectedTransaction(transaction)

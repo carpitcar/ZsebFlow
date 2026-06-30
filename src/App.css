@@ -84,20 +84,76 @@ body.wizard-sheet-open {
   gap: 12px;
 }
 
-.brand-block,
-.brand-button {
+.app-header__title-group {
   min-width: 0;
   flex: 1 1 auto;
-  text-align: left;
 }
 
-.brand-button {
+.brand-header {
+  min-width: 0;
+  margin: 0;
+  color: var(--text-strong);
+  font-size: 26px;
+  font-weight: 850;
+  line-height: 1.05;
+}
+
+.brand-header__button {
+  min-width: 0;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   border: 0;
+  border-radius: 10px;
   background: transparent;
   color: inherit;
   cursor: pointer;
   font: inherit;
-  padding: 0;
+  line-height: inherit;
+  max-width: 100%;
+  padding: 4px 6px 4px 0;
+  text-align: left;
+}
+
+.brand-header__button:focus-visible {
+  outline: 2px solid var(--input-focus-color);
+  outline-offset: 3px;
+}
+
+.brand-header__icon {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  color: var(--accent);
+}
+
+.brand-header__title {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 7px;
+  align-items: baseline;
+}
+
+.brand-header__name,
+.brand-header__section {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.brand-header__name {
+  color: var(--text-strong);
+}
+
+.brand-header__accent-text {
+  color: var(--accent);
+}
+
+.brand-header__section {
+  color: color-mix(in srgb, var(--text-strong) 82%, var(--muted));
+  font-size: 0.88em;
+  font-weight: 760;
 }
 
 .icon-button,
@@ -375,16 +431,6 @@ textarea[aria-invalid='true'] {
   gap: 26px;
   grid-auto-rows: max-content;
   min-height: 0;
-}
-
-.home-brand-title {
-  color: #ffffff;
-  font-size: 26px;
-  font-weight: 850;
-  line-height: 1.05;
-  margin: 0;
-  overflow-wrap: anywhere;
-  text-align: left;
 }
 
 .month-switcher {
@@ -2318,7 +2364,6 @@ button.metric-card {
 }
 
 .settings-back-button,
-.settings-brand-button,
 .profile-edit-button,
 .settings-row {
   font: inherit;
@@ -2347,26 +2392,17 @@ button.metric-card {
   stroke-width: 2.2;
 }
 
-.settings-brand-button {
+.settings-brand-group {
   min-width: 0;
   display: grid;
   gap: 2px;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  padding: 0;
-  text-align: left;
 }
 
-.settings-brand-button strong {
-  color: #ffffff;
+.settings-brand-header {
   font-size: 24px;
-  font-weight: 850;
-  line-height: 1.05;
 }
 
-.settings-brand-button span {
+.settings-brand-group > span {
   color: var(--muted);
   font-size: 13px;
   font-weight: 700;
@@ -3137,8 +3173,14 @@ button.settings-row {
     min-height: 0;
   }
 
-  .home-brand-title {
-    font-size: 25px;
+  .brand-header {
+    font-size: 24px;
+  }
+
+  .brand-header__icon {
+    width: 26px;
+    height: 26px;
+    flex-basis: 26px;
   }
 
   .month-switcher {
@@ -3248,13 +3290,6 @@ button.settings-row {
 
   .app-header__back-button {
     margin-left: 0;
-  }
-
-  .brand-block h1,
-  .brand-button h1 {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
 
   .icon-button,

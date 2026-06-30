@@ -28,6 +28,7 @@ import type {
   UserCurrency,
 } from '../types/finance'
 import { MobileBottomNav } from './MobileBottomNav'
+import { BrandHeader } from './BrandHeader'
 import { TransactionDetails } from './TransactionDetails'
 import { TransactionEditForm } from './TransactionEditForm'
 import { TransactionWizard } from './TransactionWizard'
@@ -628,7 +629,7 @@ export function ReportsView({
       <section className="reports-panel">
         <header className="reports-header">
           <div>
-            <h1>Riportok</h1>
+            <BrandHeader section="Riportok" onHome={onOpenHome} />
             <p>{formatPeriodLabel(dateFrom, dateTo)}</p>
           </div>
           <button

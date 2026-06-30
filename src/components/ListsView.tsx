@@ -20,6 +20,7 @@ import type {
   ListType,
   ListWithItems,
 } from '../types/lists'
+import { BrandHeader } from './BrandHeader'
 import { MobileBottomNav } from './MobileBottomNav'
 
 type ListsViewProps = {
@@ -992,7 +993,7 @@ export function ListsView({
       <section className="lists-panel">
         <header className="lists-header">
           <div>
-            <h1>Listák</h1>
+            <BrandHeader section="Listák" onHome={onOpenHome} />
             <p>Bevásárlás, teendők, emlékeztetők és egyéni listák.</p>
           </div>
           <button

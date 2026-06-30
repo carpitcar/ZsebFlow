@@ -1,8 +1,10 @@
+import { BrandHeader } from './BrandHeader'
+
 type AppHeaderProps = {
   subtitle?: string
   onBack?: () => void
   onProfile?: () => void
-  onBrandClick?: () => void
+  onBrandClick: () => void
 }
 
 function ArrowLeftIcon() {
@@ -49,14 +51,6 @@ export function AppHeader({
   onProfile,
   onBrandClick,
 }: AppHeaderProps) {
-  const title = (
-    <>
-      <p className="eyebrow">ZsebFlow</p>
-      <h1>ZsebFlow</h1>
-      {subtitle ? <p className="subtle-text">{subtitle}</p> : null}
-    </>
-  )
-
   return (
     <header className="app-header">
       <div className="app-header__main">
@@ -71,17 +65,10 @@ export function AppHeader({
           </button>
         ) : null}
 
-        {onBrandClick ? (
-          <button
-            className="brand-button app-header__title-group"
-            type="button"
-            onClick={onBrandClick}
-          >
-            {title}
-          </button>
-        ) : (
-          <div className="brand-block app-header__title-group">{title}</div>
-        )}
+        <div className="app-header__title-group">
+          <BrandHeader onHome={onBrandClick} />
+          {subtitle ? <p className="subtle-text">{subtitle}</p> : null}
+        </div>
 
         {onProfile ? (
           <button
