@@ -2044,6 +2044,24 @@ button.metric-card {
   overflow-wrap: anywhere;
 }
 
+.report-filter-context {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid color-mix(in srgb, var(--accent), transparent 42%);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent), transparent 90%);
+  padding: 8px 10px;
+}
+
+.report-filter-context span {
+  min-width: 0;
+  color: var(--text-strong);
+  font-size: 13px;
+  font-weight: 850;
+}
+
 .report-card {
   display: grid;
   gap: 12px;
@@ -2131,54 +2149,115 @@ button.metric-card {
   text-align: right;
 }
 
-.trend-chart {
-  min-height: 180px;
-  display: flex;
-  gap: 8px;
-  align-items: end;
-  overflow-x: auto;
-  padding-bottom: 3px;
-  scrollbar-width: none;
-}
-
-.trend-chart::-webkit-scrollbar {
-  display: none;
-}
-
-.trend-column {
-  width: 44px;
-  flex: 0 0 44px;
+.income-distribution-layout {
   display: grid;
-  grid-template-rows: auto 110px auto;
-  gap: 6px;
-  align-items: end;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
 }
 
-.trend-column span,
-.trend-column small {
-  overflow: hidden;
-  color: var(--muted);
-  font-size: 10px;
+.income-donut-wrap {
+  width: 180px;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  position: relative;
+}
+
+.income-donut-chart {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.income-donut-slice {
+  cursor: pointer;
+  outline: none;
+  stroke: var(--surface);
+  stroke-width: 2;
+  transition:
+    filter 160ms ease,
+    stroke-width 160ms ease,
+    opacity 160ms ease;
+}
+
+.income-donut-slice:hover,
+.income-donut-slice:focus-visible {
+  filter: drop-shadow(0 4px 9px color-mix(in srgb, var(--accent), transparent 62%));
+  stroke-width: 3;
+}
+
+.income-donut-slice.selected {
+  filter: drop-shadow(0 6px 12px color-mix(in srgb, var(--accent), transparent 50%));
+  stroke: var(--text-strong);
+  stroke-width: 3;
+}
+
+.income-donut-wrap > span {
+  position: absolute;
+  max-width: 82px;
+  color: var(--text-strong);
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1.2;
   text-align: center;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
+
+.income-distribution-list {
+  display: grid;
+  gap: 8px;
+}
+
+.income-distribution-list button {
+  min-height: 44px;
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) minmax(96px, auto);
+  gap: 8px;
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  padding: 8px;
+  text-align: left;
+}
+
+.income-distribution-list button:hover,
+.income-distribution-list button:focus-visible,
+.income-distribution-list button.selected {
+  border-color: color-mix(in srgb, var(--accent), transparent 42%);
+  background: color-mix(in srgb, var(--accent), transparent 90%);
+}
+
+.income-distribution-list button.selected {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.income-distribution-list strong,
+.income-distribution-list span:last-child {
+  min-width: 0;
+  font-size: 13px;
+}
+
+.income-distribution-list strong {
+  color: var(--text-strong);
+  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.trend-column div {
-  width: 100%;
-  height: 110px;
-  display: flex;
-  align-items: end;
-  border-radius: 12px;
-  background: var(--control-bg);
-  overflow: hidden;
+.income-distribution-list button.selected strong {
+  font-weight: 900;
 }
 
-.trend-column i {
-  width: 100%;
-  display: block;
-  border-radius: 12px 12px 0 0;
-  background: var(--accent);
+.income-distribution-list span:last-child {
+  color: var(--muted);
+  text-align: right;
+  overflow-wrap: anywhere;
 }
 
 .largest-expense-list {
@@ -3050,9 +3129,26 @@ button.settings-row {
     width: 100%;
   }
 
-  .trend-column {
-    width: 40px;
-    flex-basis: 40px;
+  .income-distribution-layout {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+
+  .income-donut-wrap {
+    width: min(180px, 100%);
+  }
+
+  .income-distribution-list {
+    width: 100%;
+  }
+
+  .income-distribution-list button {
+    grid-template-columns: 10px minmax(0, 1fr) minmax(88px, auto);
+  }
+
+  .report-filter-context {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .home-dashboard {

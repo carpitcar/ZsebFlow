@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { CSSProperties } from 'react'
+import type { CSSProperties, KeyboardEvent } from 'react'
 import { normalizeCategoryColor } from '../lib/categoryColor'
 import {
   defaultCurrencyCode,
@@ -8,13 +8,12 @@ import {
   toNumber,
 } from '../lib/currency'
 import {
-  formatCompactDate,
   formatHungarianDate,
-  formatLocalDateInput,
   formatPeriodLabel,
   getCurrentMonthRange,
 } from '../lib/date'
 import { exportTransactionsXlsx } from '../lib/exportTransactions'
+import { normalizePaymentMethod } from '../lib/paymentMethod'
 import { supabase } from '../lib/supabase'
 import {
   ensureInitialUserCurrencies,
@@ -24,6 +23,7 @@ import {
 import type {
   CashAccount,
   Category,
+  PaymentMethod,
   Transaction,
   UserCurrency,
 } from '../types/finance'
@@ -45,10 +45,18 @@ type Message = {
   text: string
 }
 
-type TrendBucket = {
-  key: string
+type IncomeDestination = PaymentMethod
+
+type IncomeDistributionItem = {
+  destination: IncomeDestination
   label: string
+  color: string
   amount: number
+  count: number
+  percentage: number
+  startAngle: number
+  endAngle: number
+  midAngle: number
 }
 
 const selectDefaultAccount = (accounts: CashAccount[]) =>
@@ -57,125 +65,80 @@ const selectDefaultAccount = (accounts: CashAccount[]) =>
   accounts[0] ??
   null
 
-const parseLocalDate = (dateValue: string) => new Date(`${dateValue}T00:00:00`)
-
-const getDayCount = (dateFrom: string, dateTo: string) => {
-  const fromTime = parseLocalDate(dateFrom).getTime()
-  const toTime = parseLocalDate(dateTo).getTime()
-
-  return Math.max(1, Math.round((toTime - fromTime) / 86_400_000) + 1)
+const incomeDestinationLabels: Record<IncomeDestination, string> = {
+  bank_transfer: 'Bankszámla',
+  revolut: 'Revolut',
+  cash: 'Készpénz',
+  szep_card: 'SZÉP-kártya',
+  card: 'Bankkártya',
+  unknown: 'Nincs megadva',
 }
 
-const getTrendLabel = (bucketType: 'daily' | 'weekly' | 'monthly') => {
-  if (bucketType === 'daily') {
-    return 'Napi költés'
-  }
-
-  if (bucketType === 'weekly') {
-    return 'Heti költés'
-  }
-
-  return 'Havi költés'
+const incomeDestinationColors: Record<IncomeDestination, string> = {
+  bank_transfer: '#2563eb',
+  revolut: '#06b6d4',
+  cash: '#16a34a',
+  szep_card: '#f59e0b',
+  card: '#7c3aed',
+  unknown: '#64748b',
 }
 
-const getTrendBuckets = (
-  transactions: Transaction[],
-  dateFrom: string,
-  dateTo: string,
-): { bucketType: 'daily' | 'weekly' | 'monthly'; buckets: TrendBucket[] } => {
-  const dayCount = getDayCount(dateFrom, dateTo)
-  const bucketType =
-    dayCount <= 45 ? 'daily' : dayCount <= 180 ? 'weekly' : 'monthly'
-  const bucketMap = new Map<string, TrendBucket>()
-  const rangeStart = parseLocalDate(dateFrom)
-  const rangeEnd = parseLocalDate(dateTo)
+const normalizeIncomeDestination = (
+  paymentMethod: string | null | undefined,
+): IncomeDestination => normalizePaymentMethod(paymentMethod)
 
-  if (bucketType === 'daily') {
-    for (
-      let date = new Date(rangeStart);
-      date <= rangeEnd;
-      date.setDate(date.getDate() + 1)
-    ) {
-      const key = formatLocalDateInput(date)
-      bucketMap.set(key, {
-        key,
-        label: formatCompactDate(key),
-        amount: 0,
-      })
-    }
-  } else if (bucketType === 'weekly') {
-    let bucketStart = new Date(rangeStart)
-    let index = 1
-
-    while (bucketStart <= rangeEnd) {
-      const key = formatLocalDateInput(bucketStart)
-      bucketMap.set(key, {
-        key,
-        label: `${index}. hét`,
-        amount: 0,
-      })
-      bucketStart = new Date(
-        bucketStart.getFullYear(),
-        bucketStart.getMonth(),
-        bucketStart.getDate() + 7,
-      )
-      index += 1
-    }
-  } else {
-    for (
-      let date = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), 1);
-      date <= rangeEnd;
-      date.setMonth(date.getMonth() + 1)
-    ) {
-      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
-        2,
-        '0',
-      )}`
-      bucketMap.set(key, {
-        key,
-        label: new Intl.DateTimeFormat('hu-HU', {
-          month: 'short',
-          year: 'numeric',
-        }).format(date),
-        amount: 0,
-      })
-    }
-  }
-
-  transactions.forEach((transaction) => {
-    if (transaction.type !== 'expense') {
-      return
-    }
-
-    const transactionDate = parseLocalDate(transaction.transaction_date)
-    let key: string
-
-    if (bucketType === 'daily') {
-      key = transaction.transaction_date
-    } else if (bucketType === 'weekly') {
-      const daysFromStart = Math.floor(
-        (transactionDate.getTime() - rangeStart.getTime()) / 86_400_000,
-      )
-      const bucketStart = new Date(rangeStart)
-      bucketStart.setDate(rangeStart.getDate() + Math.floor(daysFromStart / 7) * 7)
-      key = formatLocalDateInput(bucketStart)
-    } else {
-      key = `${transactionDate.getFullYear()}-${String(
-        transactionDate.getMonth() + 1,
-      ).padStart(2, '0')}`
-    }
-
-    const bucket = bucketMap.get(key)
-
-    if (bucket) {
-      bucket.amount += toNumber(transaction.amount)
-    }
-  })
+const polarToCartesian = (
+  centerX: number,
+  centerY: number,
+  radius: number,
+  angleInDegrees: number,
+) => {
+  const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180
 
   return {
-    bucketType,
-    buckets: Array.from(bucketMap.values()),
+    x: centerX + radius * Math.cos(angleInRadians),
+    y: centerY + radius * Math.sin(angleInRadians),
   }
+}
+
+const describeDonutSlice = (
+  centerX: number,
+  centerY: number,
+  innerRadius: number,
+  outerRadius: number,
+  startAngle: number,
+  endAngle: number,
+) => {
+  if (endAngle - startAngle >= 359.99) {
+    const topOuter = polarToCartesian(centerX, centerY, outerRadius, 0)
+    const bottomOuter = polarToCartesian(centerX, centerY, outerRadius, 180)
+    const topInner = polarToCartesian(centerX, centerY, innerRadius, 0)
+    const bottomInner = polarToCartesian(centerX, centerY, innerRadius, 180)
+
+    return [
+      `M ${topOuter.x} ${topOuter.y}`,
+      `A ${outerRadius} ${outerRadius} 0 1 1 ${bottomOuter.x} ${bottomOuter.y}`,
+      `A ${outerRadius} ${outerRadius} 0 1 1 ${topOuter.x} ${topOuter.y}`,
+      `L ${topInner.x} ${topInner.y}`,
+      `A ${innerRadius} ${innerRadius} 0 1 0 ${bottomInner.x} ${bottomInner.y}`,
+      `A ${innerRadius} ${innerRadius} 0 1 0 ${topInner.x} ${topInner.y}`,
+      'Z',
+    ].join(' ')
+  }
+
+  const outerStart = polarToCartesian(centerX, centerY, outerRadius, endAngle)
+  const outerEnd = polarToCartesian(centerX, centerY, outerRadius, startAngle)
+  const innerStart = polarToCartesian(centerX, centerY, innerRadius, startAngle)
+  const innerEnd = polarToCartesian(centerX, centerY, innerRadius, endAngle)
+  const largeArcFlag = endAngle - startAngle <= 180 ? '0' : '1'
+
+  return [
+    `M ${outerStart.x} ${outerStart.y}`,
+    `A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 0 ${outerEnd.x} ${outerEnd.y}`,
+    `L ${innerStart.x} ${innerStart.y}`,
+    `A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 1 ${innerEnd.x} ${innerEnd.y}`,
+    'Z',
+  ].join(' ')
 }
 
 export function ReportsView({
@@ -204,6 +167,8 @@ export function ReportsView({
   const [message, setMessage] = useState<Message | null>(null)
   const [activeSection, setActiveSection] =
     useState<'summary' | 'transactions'>('summary')
+  const [selectedDestination, setSelectedDestination] =
+    useState<IncomeDestination | null>(null)
 
   const loadReports = useCallback(async () => {
     const requestId = ++loadRequestRef.current
@@ -347,6 +312,37 @@ export function ReportsView({
     [transactions],
   )
 
+  const summaryTransactions = useMemo(() => {
+    if (!selectedDestination) {
+      return transactions
+    }
+
+    return transactions.filter(
+      (transaction) =>
+        normalizeIncomeDestination(transaction.payment_method) ===
+        selectedDestination,
+    )
+  }, [selectedDestination, transactions])
+
+  const summaryTotals = useMemo(
+    () =>
+      summaryTransactions.reduce(
+        (currentTotals, transaction) => {
+          const amount = toNumber(transaction.amount)
+
+          if (transaction.type === 'income') {
+            currentTotals.income += amount
+          } else {
+            currentTotals.expense += amount
+          }
+
+          return currentTotals
+        },
+        { income: 0, expense: 0 },
+      ),
+    [summaryTransactions],
+  )
+
   const expenseTransactions = useMemo(
     () => transactions.filter((transaction) => transaction.type === 'expense'),
     [transactions],
@@ -411,10 +407,73 @@ export function ReportsView({
     ]
   }, [expenseTransactions, totals.expense])
 
-  const trend = useMemo(
-    () => getTrendBuckets(transactions, dateFrom, dateTo),
-    [dateFrom, dateTo, transactions],
-  )
+  const incomeDistribution = useMemo<IncomeDistributionItem[]>(() => {
+    const distributionMap = new Map<
+      IncomeDestination,
+      { destination: IncomeDestination; label: string; color: string; amount: number; count: number }
+    >()
+
+    transactions.forEach((transaction) => {
+      if (transaction.type !== 'income') {
+        return
+      }
+
+      const destination = normalizeIncomeDestination(transaction.payment_method)
+      const currentValue =
+        distributionMap.get(destination) ??
+        {
+          destination,
+          label: incomeDestinationLabels[destination],
+          color: incomeDestinationColors[destination],
+          amount: 0,
+          count: 0,
+        }
+
+      distributionMap.set(destination, {
+        ...currentValue,
+        amount: currentValue.amount + toNumber(transaction.amount),
+        count: currentValue.count + 1,
+      })
+    })
+
+    const totalIncome = Array.from(distributionMap.values()).reduce(
+      (sum, destination) => sum + destination.amount,
+      0,
+    )
+    let progress = 0
+
+    return Array.from(distributionMap.values())
+      .sort(
+        (firstDestination, secondDestination) =>
+          secondDestination.amount - firstDestination.amount,
+      )
+      .map((destination) => {
+        const percentage =
+          totalIncome > 0 ? destination.amount / totalIncome : 0
+        const startAngle = progress * 360
+        const endAngle = startAngle + percentage * 360
+        progress += percentage
+
+        return {
+          ...destination,
+          percentage,
+          startAngle,
+          endAngle,
+          midAngle: startAngle + (endAngle - startAngle) / 2,
+        }
+      })
+  }, [transactions])
+
+  useEffect(() => {
+    if (
+      selectedDestination &&
+      !incomeDistribution.some(
+        (destination) => destination.destination === selectedDestination,
+      )
+    ) {
+      setSelectedDestination(null)
+    }
+  }, [incomeDistribution, selectedDestination])
 
   const largestExpenses = useMemo(
     () =>
@@ -442,10 +501,6 @@ export function ReportsView({
     return `conic-gradient(${stops.join(', ')})`
   }, [categoryDistribution, totals.expense])
 
-  const maxTrendAmount = Math.max(
-    ...trend.buckets.map((bucket) => bucket.amount),
-    1,
-  )
   const activeCurrencies = getActiveCurrencies(currencies)
   const defaultCurrency =
     getDefaultCurrency(currencies)?.currency_code ?? defaultCurrencyCode
@@ -483,6 +538,28 @@ export function ReportsView({
       setDateFrom(value)
     }
   }
+
+  const handleDestinationToggle = (destination: IncomeDestination) => {
+    setSelectedDestination((currentDestination) =>
+      currentDestination === destination ? null : destination,
+    )
+  }
+
+  const handleDestinationKeyDown = (
+    event: KeyboardEvent<SVGPathElement>,
+    destination: IncomeDestination,
+  ) => {
+    if (event.key !== 'Enter' && event.key !== ' ') {
+      return
+    }
+
+    event.preventDefault()
+    handleDestinationToggle(destination)
+  }
+
+  const selectedDestinationLabel = selectedDestination
+    ? incomeDestinationLabels[selectedDestination]
+    : null
 
   const handleExport = async () => {
     if (isExporting) {
@@ -647,24 +724,44 @@ export function ReportsView({
           />
         ) : (
           <>
+        {selectedDestinationLabel ? (
+          <div className="report-filter-context" role="status">
+            <span>Szűrés: {selectedDestinationLabel}</span>
+            <button
+              className="compact-button secondary-button"
+              type="button"
+              onClick={() => setSelectedDestination(null)}
+            >
+              Szűrés törlése
+            </button>
+          </div>
+        ) : null}
+
         <section className="report-summary-grid" aria-label="Összesítés">
           <article>
             <span>Bevétel</span>
-            <strong>{formatCurrency(totals.income, selectedCurrency)}</strong>
+            <strong>
+              {formatCurrency(summaryTotals.income, selectedCurrency)}
+            </strong>
           </article>
           <article>
             <span>Kiadás</span>
-            <strong>{formatCurrency(totals.expense, selectedCurrency)}</strong>
+            <strong>
+              {formatCurrency(summaryTotals.expense, selectedCurrency)}
+            </strong>
           </article>
           <article>
             <span>Különbözet</span>
             <strong>
-              {formatCurrency(totals.income - totals.expense, selectedCurrency)}
+              {formatCurrency(
+                summaryTotals.income - summaryTotals.expense,
+                selectedCurrency,
+              )}
             </strong>
           </article>
           <article>
             <span>Tételek</span>
-            <strong>{transactions.length}</strong>
+            <strong>{summaryTransactions.length}</strong>
           </article>
         </section>
 
@@ -707,28 +804,113 @@ export function ReportsView({
               )}
             </section>
 
-            <section className="report-card">
+            <section className="report-card income-distribution-card">
               <div className="report-section-heading">
-                <h2>{getTrendLabel(trend.bucketType)}</h2>
+                <h2>Bevételek eloszlása</h2>
+                {selectedDestination ? (
+                  <button
+                    className="compact-button secondary-button"
+                    type="button"
+                    onClick={() => setSelectedDestination(null)}
+                  >
+                    Összes
+                  </button>
+                ) : null}
               </div>
-              <div className="trend-chart">
-                {trend.buckets.map((bucket) => (
-                  <div className="trend-column" key={bucket.key}>
-                    <span>{formatCurrency(bucket.amount, selectedCurrency)}</span>
-                    <div>
-                      <i
-                        style={{
-                          height: `${Math.max(
-                            4,
-                            (bucket.amount / maxTrendAmount) * 100,
-                          )}%`,
-                        }}
-                      />
-                    </div>
-                    <small>{bucket.label}</small>
+              {incomeDistribution.length === 0 ? (
+                <p className="empty-state">
+                  Nincs bevétel a kiválasztott időszakban.
+                </p>
+              ) : (
+                <div className="income-distribution-layout">
+                  <div className="income-donut-wrap">
+                    <svg
+                      className="income-donut-chart"
+                      viewBox="0 0 180 180"
+                      role="img"
+                      aria-label="Bevételek eloszlása cél szerint"
+                    >
+                      {incomeDistribution.map((destination) => {
+                        const isSelected =
+                          destination.destination === selectedDestination
+                        const offset = isSelected ? 6 : 0
+                        const center = polarToCartesian(
+                          90,
+                          90,
+                          offset,
+                          destination.midAngle,
+                        )
+                        const outerRadius = isSelected ? 74 : 68
+
+                        return (
+                          <path
+                            key={destination.destination}
+                            className={`income-donut-slice${
+                              isSelected ? ' selected' : ''
+                            }`}
+                            d={describeDonutSlice(
+                              center.x,
+                              center.y,
+                              42,
+                              outerRadius,
+                              destination.startAngle,
+                              destination.endAngle,
+                            )}
+                            fill={destination.color}
+                            role="button"
+                            tabIndex={0}
+                            aria-pressed={isSelected}
+                            aria-label={`${destination.label} bevételek kiválasztása`}
+                            onClick={() =>
+                              handleDestinationToggle(destination.destination)
+                            }
+                            onKeyDown={(event) =>
+                              handleDestinationKeyDown(
+                                event,
+                                destination.destination,
+                              )
+                            }
+                          />
+                        )
+                      })}
+                    </svg>
+                    <span>
+                      {formatCurrency(totals.income, selectedCurrency)}
+                    </span>
                   </div>
-                ))}
-              </div>
+                  <div className="income-distribution-list">
+                    {incomeDistribution.map((destination) => {
+                      const isSelected =
+                        destination.destination === selectedDestination
+
+                      return (
+                        <button
+                          key={destination.destination}
+                          className={isSelected ? 'selected' : ''}
+                          type="button"
+                          aria-pressed={isSelected}
+                          aria-label={`${destination.label} bevételek kiválasztása`}
+                          onClick={() =>
+                            handleDestinationToggle(destination.destination)
+                          }
+                        >
+                          <span
+                            className="distribution-dot"
+                            style={{ backgroundColor: destination.color }}
+                            aria-hidden="true"
+                          />
+                          <strong>{destination.label}</strong>
+                          <span>
+                            {formatCurrency(destination.amount, selectedCurrency)}
+                            {' · '}
+                            {Math.round(destination.percentage * 100)}%
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
             </section>
 
             <section className="report-card">
