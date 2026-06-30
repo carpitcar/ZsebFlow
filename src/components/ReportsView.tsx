@@ -29,6 +29,7 @@ import type {
 } from '../types/finance'
 import { MobileBottomNav } from './MobileBottomNav'
 import { BrandHeader } from './BrandHeader'
+import { DatePicker } from './DatePicker'
 import { TransactionDetails } from './TransactionDetails'
 import { TransactionEditForm } from './TransactionEditForm'
 import { TransactionWizard } from './TransactionWizard'
@@ -643,24 +644,20 @@ export function ReportsView({
         </header>
 
         <section className="report-range-card" aria-label="Riport időszak">
-          <label htmlFor="reportDateFrom">
-            Kezdő dátum
-            <input
-              id="reportDateFrom"
-              type="date"
-              value={dateFrom}
-              onChange={(event) => handleDateFromChange(event.target.value)}
-            />
-          </label>
-          <label htmlFor="reportDateTo">
-            Záró dátum
-            <input
-              id="reportDateTo"
-              type="date"
-              value={dateTo}
-              onChange={(event) => handleDateToChange(event.target.value)}
-            />
-          </label>
+          <DatePicker
+            id="reportDateFrom"
+            label="Kezdő dátum"
+            value={dateFrom}
+            onChange={handleDateFromChange}
+            max={dateTo}
+          />
+          <DatePicker
+            id="reportDateTo"
+            label="Záró dátum"
+            value={dateTo}
+            onChange={handleDateToChange}
+            min={dateFrom}
+          />
           <label htmlFor="reportCurrency">
             Pénznem
             <select

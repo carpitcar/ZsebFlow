@@ -24,6 +24,7 @@ import type {
   TransactionType,
   UserCurrency,
 } from '../types/finance'
+import { DatePicker } from './DatePicker'
 import { MoneyInput } from './MoneyInput'
 
 type Message = {
@@ -367,19 +368,14 @@ export function TransactionEditForm({
             </label>
           ) : null}
 
-          <label htmlFor="editTransactionDate">
-            Dátum
-            <input
-              id="editTransactionDate"
-              type="date"
-              value={values.transactionDate}
-              onChange={(event) =>
-                updateField('transactionDate', event.target.value)
-              }
-              required
-              disabled={isSaving}
-            />
-          </label>
+          <DatePicker
+            id="editTransactionDate"
+            label="Dátum"
+            value={values.transactionDate}
+            onChange={(value) => updateField('transactionDate', value)}
+            required
+            disabled={isSaving}
+          />
 
           <label htmlFor="editTransactionMerchant">
             Partner vagy üzlet neve

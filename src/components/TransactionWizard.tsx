@@ -6,7 +6,7 @@ import type {
   KeyboardEvent,
 } from 'react'
 import { formatCurrency, normalizeCurrencyCode } from '../lib/currency'
-import { formatHungarianDate, formatLocalDateInput } from '../lib/date'
+import { formatLocalDateInput } from '../lib/date'
 import { parseMoneyInput } from '../lib/money'
 import { useVisualViewport } from '../hooks/useVisualViewport'
 import {
@@ -32,6 +32,7 @@ import type {
   UserCurrency,
 } from '../types/finance'
 import { MoneyInput } from './MoneyInput'
+import { DatePicker } from './DatePicker'
 import { TransactionWizardProgress } from './TransactionWizardProgress'
 
 type Message = {
@@ -786,35 +787,14 @@ export function TransactionWizard({
                   </div>
                 ) : null}
 
-                <label className="wizard-field-group" htmlFor="transactionDate">
-                  <span className="wizard-field-label">Dátum</span>
-                  <span className="wizard-date-select">
-                    <span className="wizard-field-icon" aria-hidden="true">
-                      <svg viewBox="0 0 24 24">
-                        <rect x="4.5" y="5.5" width="15" height="14" rx="2" />
-                        <path d="M8 3.8v3.4M16 3.8v3.4M4.5 10h15" />
-                      </svg>
-                    </span>
-                    <span className="wizard-date-select-text">
-                      {values.transactionDate
-                        ? formatHungarianDate(values.transactionDate)
-                        : 'Válassz dátumot'}
-                    </span>
-                    <span className="wizard-category-chevron" aria-hidden="true">
-                      ›
-                    </span>
-                  <input
-                    className="wizard-date-input"
-                    id="transactionDate"
-                    type="date"
-                    value={values.transactionDate}
-                    onChange={(event) =>
-                      updateField('transactionDate', event.target.value)
-                    }
-                    required
-                  />
-                  </span>
-                </label>
+                <DatePicker
+                  id="transactionDate"
+                  label="Dátum"
+                  value={values.transactionDate}
+                  onChange={(value) => updateField('transactionDate', value)}
+                  required
+                  variant="wizard"
+                />
               </section>
             ) : null}
 

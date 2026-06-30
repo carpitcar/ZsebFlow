@@ -1,23 +1,10 @@
+import { DatePicker } from './DatePicker'
+
 type CompactDateRangeProps = {
   dateFrom: string
   dateTo: string
   onDateFromChange: (value: string) => void
   onDateToChange: (value: string) => void
-}
-
-function CalendarIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" width="28" height="28">
-      <path
-        d="M7 3v3M17 3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-      />
-    </svg>
-  )
 }
 
 export function CompactDateRange({
@@ -28,51 +15,39 @@ export function CompactDateRange({
 }: CompactDateRangeProps) {
   return (
     <>
-      <label className="date-field desktop-date-field" htmlFor="dateFrom">
-        Tól
-        <input
-          id="dateFrom"
-          type="date"
-          value={dateFrom}
-          onChange={(event) => onDateFromChange(event.target.value)}
-        />
-      </label>
-      <label className="date-field desktop-date-field" htmlFor="dateTo">
-        Ig
-        <input
-          id="dateTo"
-          type="date"
-          value={dateTo}
-          onChange={(event) => onDateToChange(event.target.value)}
-        />
-      </label>
+      <DatePicker
+        id="dateFrom"
+        label="Tól"
+        value={dateFrom}
+        onChange={onDateFromChange}
+        max={dateTo}
+        className="desktop-date-field"
+      />
+      <DatePicker
+        id="dateTo"
+        label="Ig"
+        value={dateTo}
+        onChange={onDateToChange}
+        min={dateFrom}
+        className="desktop-date-field"
+      />
 
-      <label
-        className="compact-date-button mobile-date-field"
-        htmlFor="dateFromMobile"
-      >
-        <CalendarIcon />
-        <input
-          id="dateFromMobile"
-          type="date"
-          aria-label="Kezdő dátum kiválasztása"
-          value={dateFrom}
-          onChange={(event) => onDateFromChange(event.target.value)}
-        />
-      </label>
-      <label
-        className="compact-date-button mobile-date-field"
-        htmlFor="dateToMobile"
-      >
-        <CalendarIcon />
-        <input
-          id="dateToMobile"
-          type="date"
-          aria-label="Záró dátum kiválasztása"
-          value={dateTo}
-          onChange={(event) => onDateToChange(event.target.value)}
-        />
-      </label>
+      <DatePicker
+        id="dateFromMobile"
+        label="Kezdő dátum kiválasztása"
+        value={dateFrom}
+        onChange={onDateFromChange}
+        max={dateTo}
+        variant="compact"
+      />
+      <DatePicker
+        id="dateToMobile"
+        label="Záró dátum kiválasztása"
+        value={dateTo}
+        onChange={onDateToChange}
+        min={dateFrom}
+        variant="compact"
+      />
     </>
   )
 }

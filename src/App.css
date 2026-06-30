@@ -245,6 +245,21 @@ label {
   text-align: left;
 }
 
+.date-picker-field {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+  position: relative;
+  color: var(--text-strong);
+  font-size: 14px;
+  font-weight: 650;
+  text-align: left;
+}
+
+.date-picker-label {
+  color: var(--text-strong);
+}
+
 input,
 select,
 textarea {
@@ -909,8 +924,37 @@ button.metric-card {
   display: none;
 }
 
+.date-picker-trigger {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid var(--input-border-color);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text-strong);
+  cursor: pointer;
+  font: inherit;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.date-picker-trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.date-picker-trigger:focus-visible {
+  outline: 3px solid var(--input-focus-color);
+  outline-offset: 2px;
+}
+
+.date-picker-trigger-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .compact-date-button {
-  position: relative;
   min-height: 48px;
   border: 1px solid var(--border-strong);
   border-radius: 8px;
@@ -923,15 +967,129 @@ button.metric-card {
   padding: 0;
 }
 
-.compact-date-button input {
+.compact-date-button svg {
+  width: 28px;
+  height: 28px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.date-picker-layer {
   position: absolute;
+  z-index: 80;
+  top: calc(100% + 8px);
+  left: 0;
+}
+
+.date-picker-backdrop {
+  position: fixed;
   inset: 0;
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-  cursor: pointer;
-  opacity: 0;
+  z-index: 0;
+  border: 0;
+  background: transparent;
+  cursor: default;
   padding: 0;
+}
+
+.date-picker-dialog {
+  width: min(320px, calc(100vw - 32px));
+  display: grid;
+  gap: 10px;
+  position: relative;
+  z-index: 1;
+  border: 1px solid var(--border-strong);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: 0 18px 45px var(--shadow);
+  padding: 12px;
+}
+
+.date-picker-header {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 40px;
+  align-items: center;
+  gap: 8px;
+}
+
+.date-picker-header strong {
+  color: var(--text-strong);
+  font-size: 15px;
+  text-align: center;
+  text-transform: capitalize;
+}
+
+.date-picker-month-button {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text-strong);
+  cursor: pointer;
+  font: inherit;
+  font-size: 24px;
+  line-height: 1;
+  padding: 0;
+}
+
+.date-picker-month-button:hover,
+.date-picker-month-button:focus-visible {
+  background: var(--control-bg);
+}
+
+.date-picker-weekdays,
+.date-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.date-picker-weekdays span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.date-picker-grid button {
+  min-width: 0;
+  min-height: 38px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-strong);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 0;
+}
+
+.date-picker-grid button:hover,
+.date-picker-grid button:focus-visible {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.date-picker-grid button.selected {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.date-picker-grid button:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.date-picker-cancel {
+  width: 100%;
+  margin-top: 2px;
 }
 
 .transaction-list {
@@ -3084,6 +3242,34 @@ button.settings-row {
     padding: 12px;
     padding-bottom: calc(92px + env(safe-area-inset-bottom));
     overflow-x: hidden;
+  }
+
+  .date-picker-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 120;
+    display: grid;
+    align-items: end;
+    top: 0;
+    left: 0;
+  }
+
+  .date-picker-backdrop {
+    background: rgba(15, 23, 42, 0.44);
+  }
+
+  .date-picker-dialog {
+    width: 100%;
+    max-width: none;
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    border-radius: 22px 22px 0 0;
+    padding: 16px 14px calc(16px + env(safe-area-inset-bottom));
+  }
+
+  .date-picker-grid button {
+    min-height: 42px;
   }
 
   .page-shell {

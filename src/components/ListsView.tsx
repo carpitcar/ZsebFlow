@@ -21,6 +21,7 @@ import type {
   ListWithItems,
 } from '../types/lists'
 import { BrandHeader } from './BrandHeader'
+import { DatePicker } from './DatePicker'
 import { MobileBottomNav } from './MobileBottomNav'
 
 type ListsViewProps = {
@@ -626,17 +627,14 @@ export function ListsView({
               />
             </label>
           </div>
-          <label htmlFor="listDueDate">
-            Határidő
-            <input
-              id="listDueDate"
-              type="date"
-              value={listForm.dueDate}
-              onChange={(event) =>
-                setListForm((form) => ({ ...form, dueDate: event.target.value }))
-              }
-            />
-          </label>
+          <DatePicker
+            id="listDueDate"
+            label="Határidő"
+            value={listForm.dueDate}
+            onChange={(value) =>
+              setListForm((form) => ({ ...form, dueDate: value }))
+            }
+          />
           <button className="primary-button" type="submit" disabled={isSaving}>
             {isSaving ? 'Mentés...' : 'Mentés'}
           </button>
@@ -945,17 +943,17 @@ export function ListsView({
                 </datalist>
                 {!isShoppingList ? (
                   <>
-                    <label htmlFor="itemDueAt">
-                      Határidő
-                      <input
-                        id="itemDueAt"
-                        type="datetime-local"
-                        value={itemForm.dueAt}
-                        onChange={(event) =>
-                          setItemForm((form) => ({ ...form, dueAt: event.target.value }))
-                        }
-                      />
-                    </label>
+                    <DatePicker
+                      id="itemDueAt"
+                      label="Határidő"
+                      value={itemForm.dueAt.slice(0, 10)}
+                      onChange={(value) =>
+                        setItemForm((form) => ({
+                          ...form,
+                          dueAt: `${value}T12:00`,
+                        }))
+                      }
+                    />
                     <label htmlFor="itemPriority">
                       Prioritás
                       <select
