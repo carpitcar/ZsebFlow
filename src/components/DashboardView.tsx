@@ -6,6 +6,7 @@ import {
   getMonthRange,
 } from '../lib/date'
 import { normalizeCategoryColor } from '../lib/categoryColor'
+import { ensureDefaultIncomeCategories } from '../lib/defaultCategories'
 import { supabase } from '../lib/supabase'
 import {
   ensureInitialUserCurrencies,
@@ -37,6 +38,7 @@ type DashboardViewProps = {
   onOpenReports: () => void
   onOpenLists: () => void
   onOpenProfile: () => void
+  onOpenCards: () => void
   onLogout: () => Promise<void>
   isLoggingOut: boolean
 }
@@ -53,6 +55,7 @@ export function DashboardView({
   onOpenReports,
   onOpenLists,
   onOpenProfile,
+  onOpenCards,
   onLogout,
   isLoggingOut,
 }: DashboardViewProps) {
@@ -160,6 +163,12 @@ export function DashboardView({
       setCategories([])
       setTransactions([])
       setIsLoading(false)
+      return
+    }
+
+    await ensureDefaultIncomeCategories(userId)
+
+    if (requestId !== loadRequestRef.current) {
       return
     }
 
@@ -356,6 +365,7 @@ export function DashboardView({
           listError={listError}
           onMonthChange={handleMonthChange}
           onOpenHome={scrollToHomeSection}
+          onOpenCards={onOpenCards}
           onCategoryFilterChange={setActiveCategoryId}
           onSelectTransaction={(transaction) => {
             setSelectedTransaction(transaction)

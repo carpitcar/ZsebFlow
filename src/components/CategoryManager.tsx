@@ -3,6 +3,7 @@ import {
   defaultCategoryColor,
   normalizeCategoryColor,
 } from '../lib/categoryColor'
+import { ensureDefaultIncomeCategories } from '../lib/defaultCategories'
 import { supabase } from '../lib/supabase'
 import type { Category, TransactionType } from '../types/finance'
 
@@ -91,6 +92,8 @@ export function CategoryManager({ userId }: CategoryManagerProps) {
   const loadCategories = useCallback(async () => {
     setIsLoading(true)
     setMessage(null)
+
+    await ensureDefaultIncomeCategories(userId)
 
     const { data, error } = await supabase
       .from('categories')

@@ -12,7 +12,9 @@ import {
   formatPeriodLabel,
   getCurrentMonthRange,
 } from '../lib/date'
+import { ensureDefaultIncomeCategories } from '../lib/defaultCategories'
 import { exportTransactionsXlsx } from '../lib/exportTransactions'
+import { getLegacyIncomeCategoryName } from '../lib/incomeCategories'
 import { normalizePaymentMethod } from '../lib/paymentMethod'
 import { supabase } from '../lib/supabase'
 import {
@@ -47,12 +49,15 @@ type Message = {
   text: string
 }
 
-type IncomeDestination = PaymentMethod
+type IncomeGroupKey = `category:${string}` | `legacy:${PaymentMethod}`
 
 type IncomeDistributionItem = {
-  destination: IncomeDestination
+  key: IncomeGroupKey
+  categoryId: string | null
+  paymentMethod: PaymentMethod | null
   label: string
   color: string
+  icon: string | null
   amount: number
   count: number
   percentage: number
@@ -67,16 +72,7 @@ const selectDefaultAccount = (accounts: CashAccount[]) =>
   accounts[0] ??
   null
 
-const incomeDestinationLabels: Record<IncomeDestination, string> = {
-  bank_transfer: 'Bankszámla',
-  revolut: 'Revolut',
-  cash: 'Készpénz',
-  szep_card: 'SZÉP-kártya',
-  card: 'Bankkártya',
-  unknown: 'Nincs megadva',
-}
-
-const incomeDestinationColors: Record<IncomeDestination, string> = {
+const legacyIncomeColors: Record<PaymentMethod, string> = {
   bank_transfer: '#2563eb',
   revolut: '#06b6d4',
   cash: '#16a34a',
@@ -84,10 +80,6 @@ const incomeDestinationColors: Record<IncomeDestination, string> = {
   card: '#7c3aed',
   unknown: '#64748b',
 }
-
-const normalizeIncomeDestination = (
-  paymentMethod: string | null | undefined,
-): IncomeDestination => normalizePaymentMethod(paymentMethod)
 
 const polarToCartesian = (
   centerX: number,
@@ -169,8 +161,8 @@ export function ReportsView({
   const [message, setMessage] = useState<Message | null>(null)
   const [activeSection, setActiveSection] =
     useState<'summary' | 'transactions'>('summary')
-  const [selectedDestination, setSelectedDestination] =
-    useState<IncomeDestination | null>(null)
+  const [selectedIncomeGroup, setSelectedIncomeGroup] =
+    useState<IncomeGroupKey | null>(null)
 
   const loadReports = useCallback(async () => {
     const requestId = ++loadRequestRef.current
@@ -207,6 +199,12 @@ export function ReportsView({
       setCategories([])
       setTransactions([])
       setIsLoading(false)
+      return
+    }
+
+    await ensureDefaultIncomeCategories(userId)
+
+    if (requestId !== loadRequestRef.current) {
       return
     }
 
@@ -315,16 +313,22 @@ export function ReportsView({
   )
 
   const summaryTransactions = useMemo(() => {
-    if (!selectedDestination) {
+    if (!selectedIncomeGroup) {
       return transactions
     }
 
-    return transactions.filter(
-      (transaction) =>
-        normalizeIncomeDestination(transaction.payment_method) ===
-        selectedDestination,
-    )
-  }, [selectedDestination, transactions])
+    return transactions.filter((transaction) => {
+      if (selectedIncomeGroup.startsWith('category:')) {
+        return transaction.category_id === selectedIncomeGroup.slice(9)
+      }
+
+      return (
+        (transaction.type !== 'income' || !transaction.category_id) &&
+        normalizePaymentMethod(transaction.payment_method) ===
+          selectedIncomeGroup.slice(7)
+      )
+    })
+  }, [selectedIncomeGroup, transactions])
 
   const summaryTotals = useMemo(
     () =>
@@ -411,8 +415,17 @@ export function ReportsView({
 
   const incomeDistribution = useMemo<IncomeDistributionItem[]>(() => {
     const distributionMap = new Map<
-      IncomeDestination,
-      { destination: IncomeDestination; label: string; color: string; amount: number; count: number }
+      IncomeGroupKey,
+      {
+        key: IncomeGroupKey
+        categoryId: string | null
+        paymentMethod: PaymentMethod | null
+        label: string
+        color: string
+        icon: string | null
+        amount: number
+        count: number
+      }
     >()
 
     transactions.forEach((transaction) => {
@@ -420,18 +433,29 @@ export function ReportsView({
         return
       }
 
-      const destination = normalizeIncomeDestination(transaction.payment_method)
+      const category = transaction.categories
+      const paymentMethod = normalizePaymentMethod(transaction.payment_method)
+      const key: IncomeGroupKey = transaction.category_id
+        ? `category:${transaction.category_id}`
+        : `legacy:${paymentMethod}`
       const currentValue =
-        distributionMap.get(destination) ??
+        distributionMap.get(key) ??
         {
-          destination,
-          label: incomeDestinationLabels[destination],
-          color: incomeDestinationColors[destination],
+          key,
+          categoryId: transaction.category_id,
+          paymentMethod: transaction.category_id ? null : paymentMethod,
+          label:
+            category?.name ??
+            getLegacyIncomeCategoryName(transaction.payment_method),
+          color: transaction.category_id
+            ? normalizeCategoryColor(category?.color)
+            : legacyIncomeColors[paymentMethod],
+          icon: category?.icon ?? null,
           amount: 0,
           count: 0,
         }
 
-      distributionMap.set(destination, {
+      distributionMap.set(key, {
         ...currentValue,
         amount: currentValue.amount + toNumber(transaction.amount),
         count: currentValue.count + 1,
@@ -468,14 +492,14 @@ export function ReportsView({
 
   useEffect(() => {
     if (
-      selectedDestination &&
+      selectedIncomeGroup &&
       !incomeDistribution.some(
-        (destination) => destination.destination === selectedDestination,
+        (destination) => destination.key === selectedIncomeGroup,
       )
     ) {
-      setSelectedDestination(null)
+      setSelectedIncomeGroup(null)
     }
-  }, [incomeDistribution, selectedDestination])
+  }, [incomeDistribution, selectedIncomeGroup])
 
   const largestExpenses = useMemo(
     () =>
@@ -541,22 +565,22 @@ export function ReportsView({
     }
   }
 
-  const handleDestinationToggle = (destination: IncomeDestination) => {
-    setSelectedDestination((currentDestination) =>
-      currentDestination === destination ? null : destination,
+  const handleIncomeGroupToggle = (incomeGroup: IncomeGroupKey) => {
+    setSelectedIncomeGroup((currentIncomeGroup) =>
+      currentIncomeGroup === incomeGroup ? null : incomeGroup,
     )
   }
 
-  const handleDestinationKeyDown = (
+  const handleIncomeGroupKeyDown = (
     event: KeyboardEvent<SVGPathElement>,
-    destination: IncomeDestination,
+    incomeGroup: IncomeGroupKey,
   ) => {
     if (event.key !== 'Enter' && event.key !== ' ') {
       return
     }
 
     event.preventDefault()
-    handleDestinationToggle(destination)
+    handleIncomeGroupToggle(incomeGroup)
   }
 
   const handleExport = async () => {
@@ -788,11 +812,11 @@ export function ReportsView({
             <section className="report-card income-distribution-card">
               <div className="report-section-heading">
                 <h2>Bevételek eloszlása</h2>
-                {selectedDestination ? (
+                {selectedIncomeGroup ? (
                   <button
                     className="compact-button secondary-button"
                     type="button"
-                    onClick={() => setSelectedDestination(null)}
+                    onClick={() => setSelectedIncomeGroup(null)}
                   >
                     Összes
                   </button>
@@ -813,7 +837,7 @@ export function ReportsView({
                     >
                       {incomeDistribution.map((destination) => {
                         const isSelected =
-                          destination.destination === selectedDestination
+                          destination.key === selectedIncomeGroup
                         const offset = isSelected ? 6 : 0
                         const center = polarToCartesian(
                           90,
@@ -825,7 +849,7 @@ export function ReportsView({
 
                         return (
                           <path
-                            key={destination.destination}
+                            key={destination.key}
                             className={`income-donut-slice${
                               isSelected ? ' selected' : ''
                             }`}
@@ -843,12 +867,12 @@ export function ReportsView({
                             aria-pressed={isSelected}
                             aria-label={`${destination.label} bevételek kiválasztása`}
                             onClick={() =>
-                              handleDestinationToggle(destination.destination)
+                              handleIncomeGroupToggle(destination.key)
                             }
                             onKeyDown={(event) =>
-                              handleDestinationKeyDown(
+                              handleIncomeGroupKeyDown(
                                 event,
-                                destination.destination,
+                                destination.key,
                               )
                             }
                           />
@@ -862,17 +886,17 @@ export function ReportsView({
                   <div className="income-distribution-list">
                     {incomeDistribution.map((destination) => {
                       const isSelected =
-                        destination.destination === selectedDestination
+                        destination.key === selectedIncomeGroup
 
                       return (
                         <button
-                          key={destination.destination}
+                          key={destination.key}
                           className={isSelected ? 'selected' : ''}
                           type="button"
                           aria-pressed={isSelected}
                           aria-label={`${destination.label} bevételek kiválasztása`}
                           onClick={() =>
-                            handleDestinationToggle(destination.destination)
+                            handleIncomeGroupToggle(destination.key)
                           }
                         >
                           <span

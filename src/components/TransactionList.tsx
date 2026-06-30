@@ -213,15 +213,17 @@ export function TransactionList({
                   <span className="transaction-meta">
                     {formatHungarianDate(transaction.transaction_date)}
                     {description ? ` · ${description}` : ''}
-                    <span
-                      className="transaction-payment-method"
-                      aria-label={getPaymentMethodLabel(
-                        paymentMethod,
-                        transaction.type,
-                      )}
-                    >
-                      <PaymentMethodIcon paymentMethod={paymentMethod} />
-                    </span>
+                    {!isIncome ? (
+                      <span
+                        className="transaction-payment-method"
+                        aria-label={getPaymentMethodLabel(
+                          paymentMethod,
+                          transaction.type,
+                        )}
+                      >
+                        <PaymentMethodIcon paymentMethod={paymentMethod} />
+                      </span>
+                    ) : null}
                   </span>
                 </span>
                 <span className="transaction-amount">

@@ -1,6 +1,7 @@
 import { formatCurrency, normalizeCurrencyCode, toNumber } from '../lib/currency'
 import { formatHungarianDate } from '../lib/date'
 import { normalizeCategoryColor } from '../lib/categoryColor'
+import { getLegacyIncomeCategoryName } from '../lib/incomeCategories'
 import { getPaymentMethodLabel } from '../lib/paymentMethod'
 import type { Transaction } from '../types/finance'
 
@@ -67,7 +68,27 @@ export function TransactionDetails({
           </div>
           <div className="transaction-detail-row">
             <dt>{isIncome ? 'Hová érkezett' : 'Fizetési mód'}</dt>
-            <dd>{getPaymentMethodLabel(transaction.payment_method, transaction.type)}</dd>
+            <dd>
+              {isIncome ? (
+                <span className="detail-category-value">
+                  <span
+                    className="detail-category-color"
+                    aria-hidden="true"
+                    style={{
+                      backgroundColor: normalizeCategoryColor(
+                        transaction.categories?.color,
+                      ),
+                    }}
+                  />
+                  <span>
+                    {transaction.categories?.name ||
+                      getLegacyIncomeCategoryName(transaction.payment_method)}
+                  </span>
+                </span>
+              ) : (
+                getPaymentMethodLabel(transaction.payment_method, transaction.type)
+              )}
+            </dd>
           </div>
           {!isIncome ? (
             <div className="transaction-detail-row">

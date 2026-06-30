@@ -448,6 +448,62 @@ textarea[aria-invalid='true'] {
   min-height: 0;
 }
 
+.home-dashboard-header {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.home-dashboard-header .brand-header {
+  flex: 1 1 auto;
+}
+
+.home-cards-button {
+  min-width: max-content;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: 0 0 auto;
+  border: 1px solid color-mix(in srgb, var(--accent) 64%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent-soft) 70%, var(--surface));
+  color: var(--text-strong);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 850;
+  padding: 8px 12px;
+}
+
+.home-cards-button svg {
+  width: 19px;
+  height: 19px;
+  flex: 0 0 19px;
+  fill: none;
+  stroke: var(--accent);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.home-cards-button:hover,
+.home-cards-button:focus-visible {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.home-cards-button:active {
+  transform: translateY(1px);
+}
+
+.home-cards-button:focus-visible {
+  outline: 2px solid var(--input-focus-color);
+  outline-offset: 3px;
+}
+
 .month-switcher {
   display: grid;
   grid-template-columns: 40px minmax(0, 1fr) 40px;
@@ -660,6 +716,60 @@ textarea[aria-invalid='true'] {
   font-size: 14px;
   font-weight: 850;
   white-space: nowrap;
+}
+
+.loyalty-cards-panel {
+  width: min(100%, 560px);
+  display: grid;
+  gap: 16px;
+}
+
+.loyalty-cards-header {
+  min-width: 0;
+}
+
+.loyalty-empty-state {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  border: 1px solid color-mix(in srgb, var(--border), transparent 22%);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--surface), transparent 7%);
+  padding: 28px 18px;
+  text-align: center;
+}
+
+.loyalty-empty-illustration {
+  width: min(150px, 52vw);
+  height: auto;
+  color: var(--accent);
+}
+
+.loyalty-empty-illustration rect,
+.loyalty-empty-illustration path {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3;
+}
+
+.loyalty-empty-state h2 {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.loyalty-empty-state p {
+  max-width: 34rem;
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.loyalty-empty-action {
+  width: auto;
 }
 
 .mobile-bottom-nav {
@@ -1675,8 +1785,45 @@ button.metric-card {
   grid-column: 1 / -1;
 }
 
-.wizard-income-destination-grid .wizard-payment-option:last-child {
-  grid-column: auto;
+.wizard-income-category-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.wizard-income-category-option {
+  min-width: 0;
+  min-height: 54px;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--control-border-subtle);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface) 88%, var(--control-bg));
+  color: var(--text-strong);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.2;
+  padding: 8px;
+  text-align: left;
+}
+
+.wizard-income-category-option span:last-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.wizard-income-category-option.active {
+  border-color: var(--category-color, var(--accent));
+  background: color-mix(
+    in srgb,
+    var(--category-color, var(--accent)) 14%,
+    var(--surface)
+  );
+  box-shadow: 0 0 0 2px var(--input-focus-color);
 }
 
 .wizard-payment-option.active {
@@ -3357,6 +3504,21 @@ button.settings-row {
   .home-dashboard {
     gap: 24px;
     min-height: 0;
+  }
+
+  .home-dashboard-header {
+    gap: 8px;
+  }
+
+  .home-dashboard-header .brand-header__button {
+    gap: 6px;
+    padding-right: 2px;
+  }
+
+  .home-cards-button {
+    min-height: 42px;
+    gap: 5px;
+    padding: 7px 10px;
   }
 
   .brand-header {

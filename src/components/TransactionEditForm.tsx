@@ -7,14 +7,13 @@ import {
   isCategoryCompatibleWithTransactionType,
 } from '../lib/categoryType'
 import {
-  incomeDestinationOptions,
   isExpensePaymentMethod,
-  isIncomeDestination,
   paymentMethodOptions,
   paymentMethodLabels,
   normalizePaymentMethod,
   type PaymentMethod,
 } from '../lib/paymentMethod'
+import { findLegacyIncomeCategory } from '../lib/incomeCategories'
 import { numberToMoneyInput, parseMoneyInput } from '../lib/money'
 import { supabase } from '../lib/supabase'
 import type {
@@ -102,22 +101,14 @@ export function TransactionEditForm({
   }, [activeCurrencies, userId, values.currency])
 
   const isExpense = values.type === 'expense'
-  const hasValidPaymentMethod = isExpense
-    ? isExpensePaymentMethod(values.paymentMethod)
-    : isIncomeDestination(values.paymentMethod)
+  const hasValidPaymentMethod = isExpensePaymentMethod(values.paymentMethod)
 
   const paymentMethodSelectOptions = useMemo(
-    () =>
-      isExpense
-        ? [
-            { value: 'unknown' as const, label: paymentMethodLabels.unknown },
-            ...paymentMethodOptions,
-          ]
-        : [
-            { value: 'unknown' as const, label: 'Válassz érkezési helyet' },
-            ...incomeDestinationOptions,
-          ],
-    [isExpense],
+    () => [
+      { value: 'unknown' as const, label: paymentMethodLabels.unknown },
+      ...paymentMethodOptions,
+    ],
+    [],
   )
 
   const selectedCategoryId =
@@ -129,12 +120,11 @@ export function TransactionEditForm({
   useEffect(() => {
     if (
       values.categoryId &&
-      (values.type === 'income' ||
-        !isCategoryCompatibleWithTransactionType(
-          categories,
-          values.categoryId,
-          values.type,
-        ))
+      !isCategoryCompatibleWithTransactionType(
+        categories,
+        values.categoryId,
+        values.type,
+      )
     ) {
       setValues((currentValues) => ({
         ...currentValues,
@@ -142,6 +132,24 @@ export function TransactionEditForm({
       }))
     }
   }, [categories, values.categoryId, values.type])
+
+  useEffect(() => {
+    if (values.type !== 'income' || values.categoryId) {
+      return
+    }
+
+    const legacyCategory = findLegacyIncomeCategory(
+      categories,
+      transaction.payment_method,
+    )
+
+    if (legacyCategory) {
+      setValues((currentValues) => ({
+        ...currentValues,
+        categoryId: legacyCategory.id,
+      }))
+    }
+  }, [categories, transaction.payment_method, values.categoryId, values.type])
 
   const updateField = (
     field: keyof TransactionFormValues,
@@ -153,7 +161,6 @@ export function TransactionEditForm({
       ...(field === 'type'
         ? {
             categoryId:
-              value === 'expense' &&
               isCategoryCompatibleWithTransactionType(
                 categories,
                 currentValues.categoryId,
@@ -163,9 +170,7 @@ export function TransactionEditForm({
                 : '',
             paymentMethod:
               value === 'income'
-                ? isIncomeDestination(currentValues.paymentMethod)
-                  ? currentValues.paymentMethod
-                  : 'unknown'
+                ? 'unknown'
                 : isExpensePaymentMethod(currentValues.paymentMethod)
                   ? currentValues.paymentMethod
                   : 'card',
@@ -194,18 +199,20 @@ export function TransactionEditForm({
       return
     }
 
-    if (!hasValidPaymentMethod) {
+    if (isExpense && !hasValidPaymentMethod) {
       setMessage({
         type: 'error',
-        text: isExpense ? 'Válassz fizetési módot.' : 'Válaszd ki, hová érkezett.',
+        text: 'Válassz fizetési módot.',
       })
       return
     }
 
-    if (isExpense && !selectedCategoryId) {
+    if (!selectedCategoryId) {
       setMessage({
         type: 'error',
-        text: 'Válassz a típushoz tartozó kategóriát.',
+        text: isExpense
+          ? 'Válassz a típushoz tartozó kategóriát.'
+          : 'Válassz bevételi kategóriát.',
       })
       return
     }
@@ -223,11 +230,13 @@ export function TransactionEditForm({
     const { data, error } = await supabase
       .from('transactions')
       .update({
-        category_id: isExpense ? selectedCategoryId : null,
+        category_id: selectedCategoryId,
         type: values.type,
         amount,
         currency: normalizeCurrencyCode(values.currency),
-        payment_method: normalizePaymentMethod(values.paymentMethod),
+        payment_method: isExpense
+          ? normalizePaymentMethod(values.paymentMethod)
+          : normalizePaymentMethod(transaction.payment_method) ?? 'unknown',
         transaction_date: values.transactionDate,
         merchant_name: merchantName || null,
         note: note || null,
@@ -318,55 +327,55 @@ export function TransactionEditForm({
             </select>
           </label>
 
-          <label htmlFor="editTransactionPaymentMethod">
-            {isExpense ? 'Fizetési mód' : 'Hová érkezett?'}
-            <select
-              id="editTransactionPaymentMethod"
-              value={values.paymentMethod}
-              onChange={(event) =>
-                updateField(
-                  'paymentMethod',
-                  event.target.value as PaymentMethod,
-                )
-              }
-              required
-              disabled={isSaving}
-            >
-              {paymentMethodSelectOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
           {isExpense ? (
-            <label htmlFor="editTransactionCategory">
-              Kategória
+            <label htmlFor="editTransactionPaymentMethod">
+              Fizetési mód
               <select
-                id="editTransactionCategory"
-                value={selectedCategoryId}
+                id="editTransactionPaymentMethod"
+                value={values.paymentMethod}
                 onChange={(event) =>
-                  updateField('categoryId', event.target.value)
+                  updateField(
+                    'paymentMethod',
+                    event.target.value as PaymentMethod,
+                  )
                 }
                 required
                 disabled={isSaving}
               >
-                <option value="">Válassz kategóriát</option>
-                {matchingCategories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.icon ? `${category.icon} ` : ''}
-                    {category.name}
+                {paymentMethodSelectOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
                   </option>
                 ))}
               </select>
-              {matchingCategories.length === 0 ? (
-                <span className="field-hint">
-                  {categoryTypeEmptyMessages[values.type]}
-                </span>
-              ) : null}
             </label>
           ) : null}
+
+          <label htmlFor="editTransactionCategory">
+            {isExpense ? 'Kategória' : 'Hová érkezett?'}
+            <select
+              id="editTransactionCategory"
+              value={selectedCategoryId}
+              onChange={(event) => updateField('categoryId', event.target.value)}
+              required
+              disabled={isSaving}
+            >
+              <option value="">
+                {isExpense ? 'Válassz kategóriát' : 'Válassz érkezési helyet'}
+              </option>
+              {matchingCategories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.icon ? `${category.icon} ` : ''}
+                  {category.name}
+                </option>
+              ))}
+            </select>
+            {matchingCategories.length === 0 ? (
+              <span className="field-hint">
+                {categoryTypeEmptyMessages[values.type]}
+              </span>
+            ) : null}
+          </label>
 
           <DatePicker
             id="editTransactionDate"

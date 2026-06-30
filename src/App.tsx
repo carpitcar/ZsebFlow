@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { DashboardView } from './components/DashboardView'
 import { ListsView } from './components/ListsView'
+import { LoyaltyCardsView } from './components/LoyaltyCardsView'
 import { MobileBottomNav } from './components/MobileBottomNav'
 import { PasswordInput } from './components/PasswordInput'
 import { ProfileView } from './components/ProfileView'
@@ -12,7 +13,7 @@ import { supabase } from './lib/supabase'
 import './App.css'
 
 type AuthMode = 'login' | 'register'
-type AppView = 'dashboard' | 'profile' | 'reports' | 'lists'
+type AppView = 'dashboard' | 'profile' | 'reports' | 'lists' | 'cards'
 type Message = {
   type: 'success' | 'error'
   text: string
@@ -347,6 +348,18 @@ function App() {
     )
   }
 
+  if (session && view === 'cards') {
+    return (
+      <LoyaltyCardsView
+        onOpenHome={() => setView('dashboard')}
+        onOpenReports={() => setView('reports')}
+        onOpenLists={() => setView('lists')}
+        onOpenProfile={() => setView('profile')}
+        onAddTransaction={requestNewTransaction}
+      />
+    )
+  }
+
   if (session) {
     return (
       <DashboardView
@@ -355,6 +368,7 @@ function App() {
         onOpenReports={() => setView('reports')}
         onOpenLists={() => setView('lists')}
         onOpenProfile={() => setView('profile')}
+        onOpenCards={() => setView('cards')}
         onLogout={handleLogout}
         isLoggingOut={isSubmitting}
       />
