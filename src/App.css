@@ -726,6 +726,10 @@ textarea[aria-invalid='true'] {
 
 .loyalty-cards-header {
   min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .loyalty-empty-state {
@@ -770,6 +774,162 @@ textarea[aria-invalid='true'] {
 
 .loyalty-empty-action {
   width: auto;
+}
+
+.loyalty-section {
+  display: grid;
+  gap: 10px;
+}
+
+.loyalty-section h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.loyalty-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.loyalty-card-tile {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 42px;
+  gap: 8px;
+  align-items: stretch;
+  border: 1px solid color-mix(in srgb, var(--loyalty-card-color, var(--accent)) 44%, var(--border));
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface), transparent 6%);
+  padding: 9px;
+}
+
+.loyalty-card-tile > button:first-child {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+  text-align: left;
+}
+
+.loyalty-card-preview {
+  width: 58px;
+  aspect-ratio: 1.45;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--loyalty-card-color, var(--accent)) 18%, var(--surface));
+  color: var(--loyalty-card-color, var(--accent));
+  overflow: hidden;
+}
+
+.loyalty-card-preview img,
+.loyalty-detail-image img,
+.loyalty-image-previews img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.loyalty-card-preview span,
+.loyalty-detail-image span {
+  font-size: 24px;
+}
+
+.loyalty-card-tile strong,
+.loyalty-card-tile small,
+.loyalty-card-tile em {
+  min-width: 0;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.loyalty-card-tile strong {
+  color: var(--text-strong);
+  font-size: 14px;
+}
+
+.loyalty-card-tile small,
+.loyalty-card-tile em {
+  color: var(--muted);
+  font-size: 12px;
+  font-style: normal;
+}
+
+.loyalty-card-tile .favorite {
+  width: 42px;
+  min-height: 42px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 18px;
+}
+
+.loyalty-card-tile .favorite.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.loyalty-detail-panel,
+.loyalty-form-panel {
+  width: min(100%, 560px);
+}
+
+.loyalty-detail-image {
+  width: 100%;
+  aspect-ratio: 1.58;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface-strong);
+  color: var(--accent);
+  overflow: hidden;
+}
+
+.loyalty-detail-image span {
+  font-size: 42px;
+}
+
+.loyalty-form {
+  display: grid;
+  gap: 12px;
+}
+
+.loyalty-image-previews {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.loyalty-image-previews img {
+  aspect-ratio: 1.58;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.checkbox-row input {
+  width: 20px;
+  min-height: 20px;
 }
 
 .mobile-bottom-nav {
@@ -1845,6 +2005,7 @@ button.metric-card {
   padding: 9px 11px;
   text-align: left;
   font-weight: 750;
+  overflow: hidden;
 }
 
 .wizard-category-select {
@@ -1875,9 +2036,11 @@ button.metric-card {
 .wizard-category-select-text,
 .wizard-date-select-text {
   min-width: 0;
+  align-self: center;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1.35;
 }
 
 .wizard-category-chevron {
@@ -1899,12 +2062,14 @@ button.metric-card {
 }
 
 .wizard-category-picker {
-  max-height: min(48svh, 360px);
+  max-height: none;
   overflow: auto;
   display: grid;
+  align-content: start;
   gap: 7px;
   min-width: 0;
-  padding: 2px 0;
+  min-height: 0;
+  padding: 2px 0 8px;
 }
 
 .wizard-category-picker button {
@@ -1985,6 +2150,8 @@ button.metric-card {
 
 .wizard-category-sheet {
   min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   overflow: hidden;
 }
 
@@ -2022,9 +2189,11 @@ button.metric-card {
 }
 
 .wizard-category-picker button span:last-child {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1.35;
 }
 
 .wizard-primary-button {

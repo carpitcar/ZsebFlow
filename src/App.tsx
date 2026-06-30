@@ -351,6 +351,7 @@ function App() {
   if (session && view === 'cards') {
     return (
       <LoyaltyCardsView
+        userId={session.user.id}
         onOpenHome={() => setView('dashboard')}
         onOpenReports={() => setView('reports')}
         onOpenLists={() => setView('lists')}
