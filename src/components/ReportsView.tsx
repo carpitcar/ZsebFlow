@@ -557,10 +557,6 @@ export function ReportsView({
     handleDestinationToggle(destination)
   }
 
-  const selectedDestinationLabel = selectedDestination
-    ? incomeDestinationLabels[selectedDestination]
-    : null
-
   const handleExport = async () => {
     if (isExporting) {
       return
@@ -724,47 +720,6 @@ export function ReportsView({
           />
         ) : (
           <>
-        {selectedDestinationLabel ? (
-          <div className="report-filter-context" role="status">
-            <span>Szűrés: {selectedDestinationLabel}</span>
-            <button
-              className="compact-button secondary-button"
-              type="button"
-              onClick={() => setSelectedDestination(null)}
-            >
-              Szűrés törlése
-            </button>
-          </div>
-        ) : null}
-
-        <section className="report-summary-grid" aria-label="Összesítés">
-          <article>
-            <span>Bevétel</span>
-            <strong>
-              {formatCurrency(summaryTotals.income, selectedCurrency)}
-            </strong>
-          </article>
-          <article>
-            <span>Kiadás</span>
-            <strong>
-              {formatCurrency(summaryTotals.expense, selectedCurrency)}
-            </strong>
-          </article>
-          <article>
-            <span>Különbözet</span>
-            <strong>
-              {formatCurrency(
-                summaryTotals.income - summaryTotals.expense,
-                selectedCurrency,
-              )}
-            </strong>
-          </article>
-          <article>
-            <span>Tételek</span>
-            <strong>{summaryTransactions.length}</strong>
-          </article>
-        </section>
-
         {isLoading ? (
           <p className="empty-state">Riport betöltése...</p>
         ) : (
@@ -802,6 +757,34 @@ export function ReportsView({
                   </div>
                 </div>
               )}
+            </section>
+
+            <section className="report-summary-grid" aria-label="Összesítés">
+              <article>
+                <span>Bevétel</span>
+                <strong>
+                  {formatCurrency(summaryTotals.income, selectedCurrency)}
+                </strong>
+              </article>
+              <article>
+                <span>Kiadás</span>
+                <strong>
+                  {formatCurrency(summaryTotals.expense, selectedCurrency)}
+                </strong>
+              </article>
+              <article>
+                <span>Különbözet</span>
+                <strong>
+                  {formatCurrency(
+                    summaryTotals.income - summaryTotals.expense,
+                    selectedCurrency,
+                  )}
+                </strong>
+              </article>
+              <article>
+                <span>Tételek</span>
+                <strong>{summaryTransactions.length}</strong>
+              </article>
             </section>
 
             <section className="report-card income-distribution-card">

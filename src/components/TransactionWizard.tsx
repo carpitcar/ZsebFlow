@@ -710,7 +710,14 @@ export function TransactionWizard({
                   <span className="wizard-field-label">
                     {isExpense ? 'Fizetési mód' : 'Hová érkezett?'}
                   </span>
-                  <div className="wizard-payment-grid">
+                  <div
+                    className={[
+                      'wizard-payment-grid',
+                      !isExpense ? 'wizard-income-destination-grid' : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                  >
                     {(isExpense ? paymentMethodOptions : incomeDestinationOptions).map((option) => (
                       <button
                         key={option.value}

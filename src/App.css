@@ -1471,6 +1471,10 @@ button.metric-card {
   grid-column: 1 / -1;
 }
 
+.wizard-income-destination-grid .wizard-payment-option:last-child {
+  grid-column: auto;
+}
+
 .wizard-payment-option.active {
   border-color: var(--accent);
   background: var(--accent-soft);
@@ -2042,24 +2046,6 @@ button.metric-card {
   color: var(--text-strong);
   font-size: 15px;
   overflow-wrap: anywhere;
-}
-
-.report-filter-context {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  border: 1px solid color-mix(in srgb, var(--accent), transparent 42%);
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--accent), transparent 90%);
-  padding: 8px 10px;
-}
-
-.report-filter-context span {
-  min-width: 0;
-  color: var(--text-strong);
-  font-size: 13px;
-  font-weight: 850;
 }
 
 .report-card {
@@ -3144,11 +3130,6 @@ button.settings-row {
 
   .income-distribution-list button {
     grid-template-columns: 10px minmax(0, 1fr) minmax(88px, auto);
-  }
-
-  .report-filter-context {
-    align-items: stretch;
-    flex-direction: column;
   }
 
   .home-dashboard {
