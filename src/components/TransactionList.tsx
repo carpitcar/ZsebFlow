@@ -6,9 +6,6 @@ import {
   getPaymentSourceColor,
   getPaymentSourceIcon,
   getPaymentSourceLabel,
-  paymentMethodFilterOptions,
-  type PaymentMethodFilter,
-  normalizePaymentMethod,
 } from '../lib/paymentMethod'
 import { resolveTransactionPaymentSource } from '../lib/paymentSources'
 import type { PaymentSource, Transaction } from '../types/finance'
@@ -23,70 +20,10 @@ type TransactionListProps = {
   dateFrom: string
   dateTo: string
   isExporting: boolean
-  paymentMethodFilter?: PaymentMethodFilter
   onSelect: (transaction: Transaction) => void
   onDateFromChange: (value: string) => void
   onDateToChange: (value: string) => void
   onExport: () => void
-  onPaymentMethodChange?: (value: PaymentMethodFilter) => void
-}
-
-function PaymentMethodIcon({
-  paymentMethod,
-}: {
-  paymentMethod: PaymentMethodFilter
-}) {
-  if (paymentMethod === 'card') {
-    return (
-      <svg aria-hidden="true" viewBox="0 0 24 24">
-        <rect x="3.5" y="6" width="17" height="12" rx="2.2" fill="none" />
-        <path d="M3.5 10.2h17" />
-        <path d="M7 14h4" />
-      </svg>
-    )
-  }
-
-  if (paymentMethod === 'szep_card') {
-    return (
-      <svg aria-hidden="true" viewBox="0 0 24 24">
-        <rect x="3.5" y="6" width="17" height="12" rx="2.2" fill="none" />
-        <path d="M3.5 10.2h17" />
-        <path d="M7 14.2h3.4" />
-        <path d="M14.2 13.3v3" />
-        <path d="M12.7 14.8h3" />
-      </svg>
-    )
-  }
-
-  if (paymentMethod === 'cash') {
-    return (
-      <svg aria-hidden="true" viewBox="0 0 24 24">
-        <rect x="4" y="7" width="16" height="10" rx="2" fill="none" />
-        <path d="M7 10h4M13 14h4" />
-        <path d="M7.2 17V7M16.8 17V7" />
-      </svg>
-    )
-  }
-
-  if (paymentMethod === 'revolut') {
-    return (
-      <svg aria-hidden="true" viewBox="0 0 24 24">
-        <rect x="7" y="3.8" width="10" height="16.4" rx="2" fill="none" />
-        <path d="M10.2 6.8h3.6" />
-        <path d="M10.4 10h2.3a1.9 1.9 0 0 1 0 3.8h-2.3" />
-        <path d="M10.4 13.8 14 18" />
-      </svg>
-    )
-  }
-
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24">
-      <path d="M6 7h12v10H6z" fill="none" />
-      <path d="M6 12h12" />
-      <path d="M10 8.5 8 10.5l2 2" />
-      <path d="M14 8.5l2 2-2 2" />
-    </svg>
-  )
 }
 
 export function TransactionList({
@@ -98,12 +35,10 @@ export function TransactionList({
   dateFrom,
   dateTo,
   isExporting,
-  paymentMethodFilter = 'all',
   onSelect,
   onDateFromChange,
   onDateToChange,
   onExport,
-  onPaymentMethodChange,
 }: TransactionListProps) {
   return (
     <div className="transaction-list-panel">
@@ -134,24 +69,6 @@ export function TransactionList({
           onDateFromChange={onDateFromChange}
           onDateToChange={onDateToChange}
         />
-        {onPaymentMethodChange ? (
-          <label className="filter-select" htmlFor="paymentMethodFilter">
-            Fizetési mód
-            <select
-              id="paymentMethodFilter"
-              value={paymentMethodFilter}
-              onChange={(event) =>
-                onPaymentMethodChange(event.target.value as PaymentMethodFilter)
-              }
-            >
-              {paymentMethodFilterOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        ) : null}
         <button
           className="secondary-button compact-button desktop-export-button inline-export-button"
           type="button"
@@ -183,12 +100,11 @@ export function TransactionList({
               transaction.note?.trim() ||
               ''
             const categoryColor = normalizeCategoryColor(category?.color)
-            const paymentMethod = normalizePaymentMethod(transaction.payment_method)
             const resolvedSource = resolveTransactionPaymentSource(paymentSources, transaction)
             const paymentSourceLabel =
               resolvedSource?.name ??
               (isIncome ? category?.name : null) ??
-              getPaymentSourceLabel(transaction, transaction.type)
+              getPaymentSourceLabel(transaction)
             const paymentSourceColor =
               resolvedSource?.color ?? getPaymentSourceColor(transaction)
             const paymentSourceIcon =
@@ -229,17 +145,13 @@ export function TransactionList({
                     {description ? ` · ${description}` : ''}
                     {!isIncome ? (
                       <span className="transaction-payment-method" aria-label={paymentSourceLabel}>
-                        {resolvedSource ? (
-                          <span
-                            className="transaction-payment-source-icon"
-                            style={{ backgroundColor: paymentSourceColor }}
-                            aria-hidden="true"
-                          >
-                            {paymentSourceIcon}
-                          </span>
-                        ) : (
-                          <PaymentMethodIcon paymentMethod={paymentMethod} />
-                        )}
+                        <span
+                          className="transaction-payment-source-icon"
+                          style={{ backgroundColor: paymentSourceColor }}
+                          aria-hidden="true"
+                        >
+                          {paymentSourceIcon}
+                        </span>
                       </span>
                     ) : null}
                   </span>

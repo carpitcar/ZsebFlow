@@ -30,7 +30,7 @@ export function TransactionDetails({
   const paymentSourceLabel =
     resolvedPaymentSource?.name ??
     (isIncome ? transaction.categories?.name : null) ??
-    getPaymentSourceLabel(transaction, transaction.type)
+    getPaymentSourceLabel(transaction)
   const paymentSourceColor =
     resolvedPaymentSource?.color ?? getPaymentSourceColor(transaction)
 

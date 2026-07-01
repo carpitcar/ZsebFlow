@@ -1,9 +1,4 @@
 import { normalizeCategoryColor } from './categoryColor'
-import {
-  legacyPaymentSourceDefaults,
-  normalizePaymentMethod,
-  type PaymentMethod,
-} from './paymentMethod'
 import { supabase } from './supabase'
 import type { PaymentSource } from '../types/finance'
 
@@ -31,6 +26,21 @@ export type UpdatePaymentSourcePayload = Partial<
 
 const normalizeSourceName = (name: string) => name.trim().toLocaleLowerCase('hu-HU')
 
+const defaultPaymentSources: Array<{
+  system_key: string
+  name: string
+  icon: string
+  color: string
+  sortOrder: number
+}> = [
+  { system_key: 'bank_transfer', name: 'Bankszámla', icon: '🏦', color: '#2563eb', sortOrder: 10 },
+  { system_key: 'card', name: 'Bankkártya', icon: '💳', color: '#7c3aed', sortOrder: 20 },
+  { system_key: 'cash', name: 'Készpénz', icon: '💵', color: '#16a34a', sortOrder: 30 },
+  { system_key: 'revolut', name: 'Revolut', icon: 'R', color: '#06b6d4', sortOrder: 40 },
+  { system_key: 'szep_card', name: 'SZÉP-kártya', icon: '✚', color: '#f59e0b', sortOrder: 50 },
+  { system_key: 'health_fund', name: 'Egészségpénztár', icon: '+', color: '#dc2626', sortOrder: 60 },
+]
+
 const sortPaymentSources = (sources: PaymentSource[]) =>
   [...sources].sort((firstSource, secondSource) => {
     if (firstSource.is_active !== secondSource.is_active) {
@@ -57,14 +67,12 @@ export async function ensureDefaultPaymentSources(userId: string) {
   const existingSystemKeys = new Set(
     existingSources
       .map((source) => source.system_key)
-      .filter((systemKey): systemKey is Exclude<PaymentMethod, 'unknown'> =>
-        Boolean(systemKey),
-      ),
+      .filter((systemKey): systemKey is string => Boolean(systemKey)),
   )
 
-  const missingDefaults = legacyPaymentSourceDefaults.filter(
+  const missingDefaults = defaultPaymentSources.filter(
     (defaultSource) =>
-      !existingSystemKeys.has(defaultSource.value) &&
+      !existingSystemKeys.has(defaultSource.system_key) &&
       !existingNames.has(normalizeSourceName(defaultSource.name)),
   )
 
@@ -78,7 +86,7 @@ export async function ensureDefaultPaymentSources(userId: string) {
       missingDefaults.map((defaultSource) => ({
         user_id: userId,
         name: defaultSource.name,
-        system_key: defaultSource.value,
+        system_key: defaultSource.system_key,
         icon: defaultSource.icon,
         color: defaultSource.color,
         sort_order: defaultSource.sortOrder,
@@ -195,15 +203,15 @@ export async function deleteOrArchivePaymentSource(source: PaymentSource) {
   return { archived: false, error }
 }
 
-export const findPaymentSourceByLegacyMethod = (
+export const findPaymentSourceBySystemKey = (
   sources: PaymentSource[],
-  paymentMethod: string | null | undefined,
+  systemKey: string | null | undefined,
 ) => {
-  const normalizedPaymentMethod = normalizePaymentMethod(paymentMethod)
-  if (normalizedPaymentMethod === 'unknown') return null
+  const normalizedSystemKey = systemKey?.trim()
+  if (!normalizedSystemKey) return null
 
   return (
-    sources.find((source) => source.system_key === normalizedPaymentMethod) ??
+    sources.find((source) => source.system_key === normalizedSystemKey) ??
     null
   )
 }
@@ -218,4 +226,4 @@ export const resolveTransactionPaymentSource = (
 ) =>
   transaction.payment_sources ??
   sources.find((source) => source.id === transaction.payment_source_id) ??
-  findPaymentSourceByLegacyMethod(sources, transaction.payment_method)
+  findPaymentSourceBySystemKey(sources, transaction.payment_method)

@@ -7,11 +7,7 @@ import {
   isCategoryCompatibleWithTransactionType,
 } from '../lib/categoryType'
 import {
-  getSourceLegacyPaymentMethod,
-  normalizePaymentMethod,
-} from '../lib/paymentMethod'
-import {
-  findPaymentSourceByLegacyMethod,
+  findPaymentSourceBySystemKey,
   resolveTransactionPaymentSource,
 } from '../lib/paymentSources'
 import { numberToMoneyInput, parseMoneyInput } from '../lib/money'
@@ -46,7 +42,6 @@ const getInitialValues = (transaction: Transaction): TransactionFormValues => ({
   type: transaction.type,
   amount: numberToMoneyInput(transaction.amount),
   currency: normalizeCurrencyCode(transaction.currency),
-  paymentMethod: normalizePaymentMethod(transaction.payment_method),
   paymentSourceId: transaction.payment_source_id ?? '',
   categoryId: transaction.category_id ?? '',
   transactionDate: transaction.transaction_date,
@@ -118,9 +113,9 @@ export function TransactionEditForm({
     () =>
       resolveTransactionPaymentSource(paymentSources, {
         payment_source_id: values.paymentSourceId,
-        payment_method: values.paymentMethod,
+        payment_method: transaction.payment_method,
       }),
-    [paymentSources, values.paymentMethod, values.paymentSourceId],
+    [paymentSources, transaction.payment_method, values.paymentSourceId],
   )
   const paymentSourceOptions = useMemo(
     () =>
@@ -159,13 +154,12 @@ export function TransactionEditForm({
     const fallbackSource =
       transaction.payment_source_id
         ? paymentSources.find((source) => source.id === transaction.payment_source_id)
-        : findPaymentSourceByLegacyMethod(paymentSources, transaction.payment_method)
+        : findPaymentSourceBySystemKey(paymentSources, transaction.payment_method)
 
     if (fallbackSource) {
       setValues((currentValues) => ({
         ...currentValues,
         paymentSourceId: fallbackSource.id,
-        paymentMethod: getSourceLegacyPaymentMethod(fallbackSource),
       }))
     }
   }, [
@@ -193,14 +187,6 @@ export function TransactionEditForm({
               )
                 ? currentValues.categoryId
                 : '',
-            paymentMethod:
-              currentValues.paymentSourceId
-                ? getSourceLegacyPaymentMethod(
-                    paymentSources.find(
-                      (source) => source.id === currentValues.paymentSourceId,
-                    ),
-                  )
-                : currentValues.paymentMethod,
           }
         : {}),
     }))
@@ -260,9 +246,7 @@ export function TransactionEditForm({
         type: values.type,
         amount,
         currency: normalizeCurrencyCode(values.currency),
-        payment_method: selectedPaymentSource.system_key
-          ? normalizePaymentMethod(selectedPaymentSource.system_key)
-          : 'unknown',
+        payment_method: null,
         transaction_date: values.transactionDate,
         merchant_name: merchantName || null,
         note: note || null,
@@ -359,13 +343,9 @@ export function TransactionEditForm({
               id="editTransactionPaymentSource"
               value={selectedPaymentSource?.id ?? ''}
               onChange={(event) => {
-                const source = paymentSources.find(
-                  (paymentSource) => paymentSource.id === event.target.value,
-                )
                 setValues((currentValues) => ({
                   ...currentValues,
                   paymentSourceId: event.target.value,
-                  paymentMethod: getSourceLegacyPaymentMethod(source),
                 }))
               }}
               required

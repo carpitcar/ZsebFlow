@@ -18,19 +18,11 @@ export type UserCurrency = {
   created_at?: string
 }
 
-export type PaymentMethod =
-  | 'unknown'
-  | 'card'
-  | 'szep_card'
-  | 'cash'
-  | 'bank_transfer'
-  | 'revolut'
-
 export type PaymentSource = {
   id: string
   user_id: string
   name: string
-  system_key: Exclude<PaymentMethod, 'unknown'> | null
+  system_key: string | null
   icon: string | null
   color: string | null
   is_active: boolean
@@ -59,7 +51,7 @@ export type Transaction = {
   type: TransactionType
   amount: number | string
   currency: string
-  payment_method: PaymentMethod
+  payment_method: string | null
   transaction_date: string
   merchant_name: string | null
   note: string | null
@@ -72,7 +64,6 @@ export type TransactionFormValues = {
   type: TransactionType
   amount: string
   currency: string
-  paymentMethod: PaymentMethod
   paymentSourceId: string
   categoryId: string
   transactionDate: string

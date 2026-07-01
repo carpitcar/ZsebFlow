@@ -203,14 +203,13 @@ export function DashboardView({
       return
     }
 
-    if (categoryError || transactionError || currencyError || paymentSourceError) {
+    if (categoryError || transactionError || currencyError) {
       setMessage({
         type: 'error',
         text:
           categoryError?.message ??
           transactionError?.message ??
           currencyError?.message ??
-          paymentSourceError?.message ??
           'Nem sikerült betölteni az adatokat.',
       })
       setAccount(defaultAccount)
@@ -224,9 +223,15 @@ export function DashboardView({
 
     setAccount(defaultAccount)
     setCategories((categoryRows ?? []) as Category[])
-    setPaymentSources((paymentSourceRows ?? []) as PaymentSource[])
+    setPaymentSources(paymentSourceError ? [] : (paymentSourceRows ?? []) as PaymentSource[])
     setCurrencies(currencyRows)
     setTransactions((transactionRows ?? []) as Transaction[])
+    if (paymentSourceError) {
+      setMessage({
+        type: 'error',
+        text: `Nem sikerült betölteni a fizetési helyeket: ${paymentSourceError.message}`,
+      })
+    }
     setIsLoading(false)
   }, [userId])
 

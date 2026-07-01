@@ -9,13 +9,7 @@ type DefaultCategory = {
   color: string
 }
 
-export const defaultIncomeCategories: DefaultCategory[] = [
-  { name: 'Bankszámla', type: 'income', icon: '🏦', color: '#2563eb' },
-  { name: 'Revolut', type: 'income', icon: '💳', color: '#06b6d4' },
-  { name: 'Készpénz', type: 'income', icon: '💵', color: '#16a34a' },
-  { name: 'SZÉP-kártya', type: 'income', icon: '💳', color: '#f59e0b' },
-  { name: 'Bankkártya', type: 'income', icon: '💳', color: '#7c3aed' },
-]
+export const defaultIncomeCategories: DefaultCategory[] = []
 
 export const normalizeCategoryName = (name: string) =>
   name.trim().toLocaleLowerCase('hu-HU')

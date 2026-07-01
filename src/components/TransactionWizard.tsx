@@ -14,11 +14,6 @@ import {
   categoryTypeEmptyMessages,
   isCategoryCompatibleWithTransactionType,
 } from '../lib/categoryType'
-import {
-  getSourceLegacyPaymentMethod,
-  normalizePaymentMethod,
-} from '../lib/paymentMethod'
-import { findPaymentSourceByLegacyMethod } from '../lib/paymentSources'
 import { supabase } from '../lib/supabase'
 import type {
   CashAccount,
@@ -59,7 +54,6 @@ const getInitialValues = (defaultCurrency: string): TransactionFormValues => ({
   type: 'expense',
   amount: '',
   currency: normalizeCurrencyCode(defaultCurrency),
-  paymentMethod: 'card',
   paymentSourceId: '',
   categoryId: '',
   transactionDate: formatLocalDateInput(new Date()),
@@ -224,7 +218,6 @@ export function TransactionWizard({
     values.merchantName.trim() !== '' ||
     values.note.trim() !== '' ||
     values.currency !== normalizeCurrencyCode(defaultCurrency) ||
-    values.paymentMethod !== 'card' ||
     values.transactionDate !== formatLocalDateInput(new Date())
 
   const updateField = (field: keyof TransactionFormValues, value: string) => {
@@ -242,14 +235,6 @@ export function TransactionWizard({
               )
                 ? currentValues.categoryId
                 : '',
-            paymentMethod:
-              currentValues.paymentSourceId
-                ? getSourceLegacyPaymentMethod(
-                    paymentSources.find(
-                      (source) => source.id === currentValues.paymentSourceId,
-                    ),
-                  )
-                : currentValues.paymentMethod,
           }
         : {}),
     }))
@@ -268,26 +253,15 @@ export function TransactionWizard({
       }
     }
 
-    const fallbackSource =
-      visiblePaymentSources.find((source) => source.system_key === 'card') ??
-      findPaymentSourceByLegacyMethod(visiblePaymentSources, values.paymentMethod) ??
-      visiblePaymentSources[0] ??
-      null
+    const fallbackSource = visiblePaymentSources[0] ?? null
 
     if (fallbackSource) {
       setValues((currentValues) => ({
         ...currentValues,
         paymentSourceId: fallbackSource.id,
-        paymentMethod: getSourceLegacyPaymentMethod(fallbackSource),
       }))
     }
-  }, [
-    isExpense,
-    paymentSources,
-    values.paymentMethod,
-    values.paymentSourceId,
-    visiblePaymentSources,
-  ])
+  }, [isExpense, paymentSources, values.paymentSourceId, visiblePaymentSources])
 
   const handleCategorySelect = (categoryId: string) => {
     updateField('categoryId', categoryId)
@@ -300,7 +274,6 @@ export function TransactionWizard({
     setValues((currentValues) => ({
       ...currentValues,
       paymentSourceId: source.id,
-      paymentMethod: getSourceLegacyPaymentMethod(source),
     }))
   }
 
@@ -426,9 +399,7 @@ export function TransactionWizard({
         type: values.type,
         amount,
         currency: normalizeCurrencyCode(values.currency),
-        payment_method: selectedPaymentSource?.system_key
-          ? normalizePaymentMethod(selectedPaymentSource.system_key)
-          : 'unknown',
+        payment_method: null,
         transaction_date: values.transactionDate,
         merchant_name: merchantName || null,
         note: note || null,
@@ -957,7 +928,7 @@ export function TransactionWizard({
                     <dd>{formatCurrency(amount, values.currency)}</dd>
                   </div>
                   <div>
-                    <dt>{isExpense ? 'Fizetési mód' : 'Hová érkezett'}</dt>
+                    <dt>{isExpense ? 'Mivel fizettél?' : 'Hová érkezett?'}</dt>
                     <dd>{selectedPaymentSource?.name ?? 'Nincs kiválasztva'}</dd>
                   </div>
                   {isExpense ? (

@@ -18,7 +18,6 @@ import {
   getPaymentSourceColor,
   getPaymentSourceIcon,
   getPaymentSourceLabel,
-  normalizePaymentMethod,
 } from '../lib/paymentMethod'
 import { loadPaymentSources, resolveTransactionPaymentSource } from '../lib/paymentSources'
 import { supabase } from '../lib/supabase'
@@ -30,7 +29,6 @@ import {
 import type {
   CashAccount,
   Category,
-  PaymentMethod,
   PaymentSource,
   Transaction,
   UserCurrency,
@@ -55,12 +53,11 @@ type Message = {
   text: string
 }
 
-type IncomeGroupKey = `source:${string}` | `legacy:${PaymentMethod}`
+type IncomeGroupKey = `source:${string}` | 'missing-source'
 
 type IncomeDistributionItem = {
   key: IncomeGroupKey
   paymentSourceId: string | null
-  paymentMethod: PaymentMethod | null
   label: string
   color: string
   icon: string | null
@@ -236,7 +233,7 @@ export function ReportsView({
       return
     }
 
-    if (categoryError || transactionError || paymentSourceError) {
+    if (categoryError || transactionError) {
       setAccount(defaultAccount)
       setCategories([])
       setPaymentSources([])
@@ -246,7 +243,6 @@ export function ReportsView({
         text:
           categoryError?.message ??
           transactionError?.message ??
-          paymentSourceError?.message ??
           'Nem sikerült betölteni a riport adatokat.',
       })
       setIsLoading(false)
@@ -255,8 +251,14 @@ export function ReportsView({
 
     setAccount(defaultAccount)
     setCategories((categoryRows ?? []) as Category[])
-    setPaymentSources((paymentSourceRows ?? []) as PaymentSource[])
+    setPaymentSources(paymentSourceError ? [] : (paymentSourceRows ?? []) as PaymentSource[])
     setTransactions((transactionRows ?? []) as unknown as Transaction[])
+    if (paymentSourceError) {
+      setMessage({
+        type: 'error',
+        text: `Nem sikerült betölteni a fizetési helyeket: ${paymentSourceError.message}`,
+      })
+    }
     setIsLoading(false)
   }, [dateFrom, dateTo, selectedCurrency, userId])
 
@@ -325,28 +327,16 @@ export function ReportsView({
       if (selectedIncomeGroup.startsWith('source:')) {
         const sourceId = selectedIncomeGroup.slice(7)
         const resolvedSource = resolveTransactionPaymentSource(paymentSources, transaction)
-        const sourceByLegacyCategory =
-          transaction.type === 'income' && transaction.categories?.name
-            ? paymentSources.find(
-                (source) =>
-                  source.name.localeCompare(
-                    transaction.categories?.name ?? '',
-                    'hu-HU',
-                    { sensitivity: 'base' },
-                  ) === 0,
-              )
-            : null
         return (
           transaction.payment_source_id === sourceId ||
-          (!transaction.payment_source_id && resolvedSource?.id === sourceId) ||
-          (!transaction.payment_source_id && sourceByLegacyCategory?.id === sourceId)
+          (!transaction.payment_source_id && resolvedSource?.id === sourceId)
         )
       }
 
       return (
-        (transaction.type !== 'income' || !transaction.category_id) &&
-        normalizePaymentMethod(transaction.payment_method) ===
-          selectedIncomeGroup.slice(7)
+        selectedIncomeGroup === 'missing-source' &&
+        transaction.type === 'income' &&
+        !resolveTransactionPaymentSource(paymentSources, transaction)
       )
     })
   }, [paymentSources, selectedIncomeGroup, transactions])
@@ -440,7 +430,6 @@ export function ReportsView({
       {
         key: IncomeGroupKey
         paymentSourceId: string | null
-        paymentMethod: PaymentMethod | null
         label: string
         color: string
         icon: string | null
@@ -454,31 +443,18 @@ export function ReportsView({
         return
       }
 
-      const category = transaction.categories
-      const resolvedSource =
-        resolveTransactionPaymentSource(paymentSources, transaction) ??
-        (category?.name
-          ? paymentSources.find(
-              (source) =>
-                source.name.localeCompare(category.name, 'hu-HU', {
-                  sensitivity: 'base',
-                }) === 0,
-            )
-          : null)
-      const paymentMethod = normalizePaymentMethod(transaction.payment_method)
+      const resolvedSource = resolveTransactionPaymentSource(paymentSources, transaction)
       const key: IncomeGroupKey = resolvedSource
         ? `source:${resolvedSource.id}`
-        : `legacy:${paymentMethod}`
+        : 'missing-source'
       const currentValue =
         distributionMap.get(key) ??
         {
           key,
           paymentSourceId: resolvedSource?.id ?? null,
-          paymentMethod: resolvedSource ? null : paymentMethod,
           label:
             resolvedSource?.name ??
-            category?.name ??
-            getPaymentSourceLabel(transaction, transaction.type),
+            getPaymentSourceLabel(transaction),
           color: resolvedSource?.color ?? getPaymentSourceColor(transaction),
           icon: resolvedSource?.icon ?? getPaymentSourceIcon(transaction),
           amount: 0,

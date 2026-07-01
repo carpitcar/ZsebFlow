@@ -3459,9 +3459,10 @@ button.settings-row {
 }
 
 .payment-source-item {
+  width: 100%;
   min-width: 0;
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr);
+  grid-template-columns: 44px minmax(0, 1fr) minmax(0, auto);
   gap: 10px;
   align-items: start;
   border: 1px solid color-mix(in srgb, var(--border), transparent 30%);
@@ -3473,6 +3474,10 @@ button.settings-row {
 .payment-source-main,
 .payment-source-edit {
   min-width: 0;
+}
+
+.payment-source-edit {
+  grid-column: 2 / -1;
 }
 
 .payment-source-main {
@@ -3495,6 +3500,31 @@ button.settings-row {
 .payment-source-main span {
   color: var(--muted);
   font-size: 12px;
+}
+
+.payment-source-item .category-actions {
+  min-width: 0;
+  max-width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.payment-source-item .category-actions .compact-button {
+  min-width: 0;
+  white-space: normal;
+}
+
+@media (max-width: 720px) {
+  .payment-source-item {
+    grid-template-columns: 44px minmax(0, 1fr);
+  }
+
+  .payment-source-item .category-actions {
+    grid-column: 2 / -1;
+    justify-content: flex-start;
+  }
 }
 
 .currency-item {

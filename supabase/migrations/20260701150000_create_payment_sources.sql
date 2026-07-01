@@ -18,7 +18,8 @@ create table if not exists public.payment_sources (
       'szep_card',
       'cash',
       'bank_transfer',
-      'revolut'
+      'revolut',
+      'health_fund'
     )
   )
 );
@@ -106,7 +107,8 @@ from (
       ('Bankkártya', 'card', '💳', '#7c3aed', 20),
       ('Készpénz', 'cash', '💵', '#16a34a', 30),
       ('Revolut', 'revolut', 'R', '#06b6d4', 40),
-      ('SZÉP-kártya', 'szep_card', '✚', '#f59e0b', 50)
+      ('SZÉP-kártya', 'szep_card', '✚', '#f59e0b', 50),
+      ('Egészségpénztár', 'health_fund', '+', '#dc2626', 60)
   ) as defaults(name, system_key, icon, color, sort_order)
 ) as profile_defaults
 on conflict (user_id, (lower(btrim(name)))) do nothing;

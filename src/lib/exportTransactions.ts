@@ -31,7 +31,7 @@ export async function exportTransactionsXlsx({
     { header: 'Kategória', key: 'category', width: 24 },
     { header: 'Partner / üzlet', key: 'merchant', width: 26 },
     { header: 'Megjegyzés', key: 'note', width: 34 },
-    { header: 'Fizetési mód', key: 'paymentMethod', width: 18 },
+    { header: 'Fizetési hely', key: 'paymentSource', width: 18 },
     { header: 'Pénznem', key: 'currency', width: 12 },
     { header: 'Összeg', key: 'amount', width: 16 },
   ]
@@ -58,7 +58,7 @@ export async function exportTransactionsXlsx({
     const paymentSourceLabel =
       transaction.payment_sources?.name ??
       (transaction.type === 'income' ? transaction.categories?.name : null) ??
-      getPaymentSourceLabel(transaction, transaction.type)
+      getPaymentSourceLabel(transaction)
 
     const row = transactionSheet.addRow({
       date: parseLocalDate(transaction.transaction_date),
@@ -66,7 +66,7 @@ export async function exportTransactionsXlsx({
       category: transaction.categories?.name ?? 'Kategória nélkül',
       merchant: transaction.merchant_name ?? '',
       note: transaction.note ?? '',
-      paymentMethod: paymentSourceLabel,
+      paymentSource: paymentSourceLabel,
       currency: currencyCode,
       amount: signedAmount,
     })

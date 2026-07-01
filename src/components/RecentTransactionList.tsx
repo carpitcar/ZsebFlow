@@ -46,9 +46,9 @@ export function RecentTransactionList({
             const isIncome = transaction.type === 'income'
             const description =
               transaction.merchant_name?.trim() || transaction.note?.trim() || ''
-            const paymentSourceLabel = getPaymentSourceLabel(transaction, transaction.type)
+            const paymentSourceLabel = getPaymentSourceLabel(transaction)
             const displayName = isIncome
-              ? transaction.payment_sources?.name ?? category?.name ?? paymentSourceLabel
+              ? transaction.payment_sources?.name ?? paymentSourceLabel
               : category?.name || 'Kategória nélkül'
             const displayIcon = isIncome
               ? getPaymentSourceIcon(transaction)
