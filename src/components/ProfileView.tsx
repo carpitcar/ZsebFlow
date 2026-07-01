@@ -6,9 +6,15 @@ import {
   normalizeCurrencyCode,
 } from '../lib/currency'
 import { supabase } from '../lib/supabase'
+import {
+  createPaymentSource,
+  deleteOrArchivePaymentSource,
+  loadPaymentSources,
+  updatePaymentSource,
+} from '../lib/paymentSources'
 import { ensureInitialUserCurrencies, getDefaultCurrency } from '../lib/userCurrencies'
 import type { AccentOption, ThemeOption } from '../types/appearance'
-import type { UserCurrency } from '../types/finance'
+import type { PaymentSource, UserCurrency } from '../types/finance'
 import { BrandHeader } from './BrandHeader'
 import { CategoryManager } from './CategoryManager'
 
@@ -61,6 +67,18 @@ const accentClassNames: Record<AccentOption, string> = {
   teal: 'accent-teal',
 }
 
+const sourceColorOptions = [
+  '#ef4444',
+  '#f97316',
+  '#eab308',
+  '#22c55e',
+  '#14b8a6',
+  '#3b82f6',
+  '#8b5cf6',
+  '#ec4899',
+  '#64748b',
+]
+
 function ArrowLeftIcon() {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24">
@@ -80,6 +98,40 @@ function UserCircleIcon() {
 
 function SettingsGlyph({ children }: { children: ReactNode }) {
   return <span className="settings-row-icon" aria-hidden="true">{children}</span>
+}
+
+function SourceColorPicker({
+  legend,
+  value,
+  onChange,
+  disabled,
+}: {
+  legend: string
+  value: string
+  onChange: (color: string) => void
+  disabled: boolean
+}) {
+  return (
+    <fieldset className="category-color-picker">
+      <legend>{legend}</legend>
+      <div className="category-color-grid">
+        {sourceColorOptions.map((color) => (
+          <button
+            key={color}
+            className={value === color ? 'active' : ''}
+            type="button"
+            aria-label={`${color} szín`}
+            aria-pressed={value === color}
+            onClick={() => onChange(color)}
+            disabled={disabled}
+            style={{ backgroundColor: color }}
+          >
+            {value === color ? '✓' : ''}
+          </button>
+        ))}
+      </div>
+    </fieldset>
+  )
 }
 
 function CompactSettingsHeader({
@@ -442,6 +494,389 @@ function CurrencyManager({
   )
 }
 
+function PaymentSourceManager({ userId }: { userId: string }) {
+  const [sources, setSources] = useState<PaymentSource[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [newName, setNewName] = useState('')
+  const [newIcon, setNewIcon] = useState('')
+  const [newColor, setNewColor] = useState('#0f766e')
+  const [newUseIncome, setNewUseIncome] = useState(true)
+  const [newUseExpense, setNewUseExpense] = useState(true)
+  const [editName, setEditName] = useState('')
+  const [editIcon, setEditIcon] = useState('')
+  const [editColor, setEditColor] = useState('#0f766e')
+  const [editUseIncome, setEditUseIncome] = useState(true)
+  const [editUseExpense, setEditUseExpense] = useState(true)
+  const [message, setMessage] = useState<Message | null>(null)
+
+  const refreshSources = useCallback(async () => {
+    setIsLoading(true)
+    const { data, error } = await loadPaymentSources(userId)
+    if (error) {
+      setMessage({
+        type: 'error',
+        text: `Nem sikerült betölteni a fizetési helyeket: ${error.message}`,
+      })
+      setSources([])
+    } else {
+      setSources(data)
+    }
+    setIsLoading(false)
+  }, [userId])
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void refreshSources()
+    }, 0)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [refreshSources])
+
+  const hasDuplicate = (name: string, ignoredSourceId?: string) =>
+    sources.some(
+      (source) =>
+        source.id !== ignoredSourceId &&
+        source.name.trim().localeCompare(name.trim(), 'hu-HU', {
+          sensitivity: 'base',
+        }) === 0,
+    )
+
+  const handleCreate = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setMessage(null)
+
+    const name = newName.trim()
+    if (!name) {
+      setMessage({ type: 'error', text: 'A fizetési hely neve kötelező.' })
+      return
+    }
+
+    if (hasDuplicate(name)) {
+      setMessage({ type: 'error', text: 'Már létezik ilyen nevű fizetési hely.' })
+      return
+    }
+
+    if (!newUseIncome && !newUseExpense) {
+      setMessage({ type: 'error', text: 'Legalább egy használati módot válassz.' })
+      return
+    }
+
+    setIsSaving(true)
+    const { error } = await createPaymentSource({
+      user_id: userId,
+      name,
+      icon: newIcon,
+      color: newColor,
+      use_for_income: newUseIncome,
+      use_for_expense: newUseExpense,
+    })
+
+    if (error) {
+      setMessage({
+        type: 'error',
+        text: `Nem sikerült létrehozni: ${error.message}`,
+      })
+      setIsSaving(false)
+      return
+    }
+
+    setNewName('')
+    setNewIcon('')
+    setNewColor('#0f766e')
+    setNewUseIncome(true)
+    setNewUseExpense(true)
+    await refreshSources()
+    setMessage({ type: 'success', text: 'A fizetési hely létrejött.' })
+    setIsSaving(false)
+  }
+
+  const startEditing = (source: PaymentSource) => {
+    setEditingId(source.id)
+    setEditName(source.name)
+    setEditIcon(source.icon ?? '')
+    setEditColor(source.color ?? '#0f766e')
+    setEditUseIncome(source.use_for_income)
+    setEditUseExpense(source.use_for_expense)
+    setMessage(null)
+  }
+
+  const cancelEditing = () => {
+    setEditingId(null)
+    setEditName('')
+    setEditIcon('')
+    setEditColor('#0f766e')
+  }
+
+  const handleUpdate = async (source: PaymentSource) => {
+    setMessage(null)
+    const name = editName.trim()
+
+    if (!name) {
+      setMessage({ type: 'error', text: 'A fizetési hely neve kötelező.' })
+      return
+    }
+
+    if (hasDuplicate(name, source.id)) {
+      setMessage({ type: 'error', text: 'Már létezik ilyen nevű fizetési hely.' })
+      return
+    }
+
+    if (!editUseIncome && !editUseExpense) {
+      setMessage({ type: 'error', text: 'Legalább egy használati módot válassz.' })
+      return
+    }
+
+    setIsSaving(true)
+    const { error } = await updatePaymentSource(source.id, userId, {
+      name,
+      icon: editIcon,
+      color: editColor,
+      use_for_income: editUseIncome,
+      use_for_expense: editUseExpense,
+    })
+
+    if (error) {
+      setMessage({
+        type: 'error',
+        text: `Nem sikerült módosítani: ${error.message}`,
+      })
+      setIsSaving(false)
+      return
+    }
+
+    cancelEditing()
+    await refreshSources()
+    setMessage({ type: 'success', text: 'A fizetési hely módosítva.' })
+    setIsSaving(false)
+  }
+
+  const handleToggleActive = async (source: PaymentSource) => {
+    setIsSaving(true)
+    setMessage(null)
+    const { error } = await updatePaymentSource(source.id, userId, {
+      is_active: !source.is_active,
+    })
+
+    if (error) {
+      setMessage({ type: 'error', text: `Nem sikerült módosítani: ${error.message}` })
+      setIsSaving(false)
+      return
+    }
+
+    await refreshSources()
+    setIsSaving(false)
+  }
+
+  const handleDelete = async (source: PaymentSource) => {
+    setIsSaving(true)
+    setMessage(null)
+    const { archived, error } = await deleteOrArchivePaymentSource(source)
+
+    if (error) {
+      setMessage({ type: 'error', text: `Nem sikerült törölni: ${error.message}` })
+      setIsSaving(false)
+      return
+    }
+
+    await refreshSources()
+    setMessage({
+      type: 'success',
+      text: archived
+        ? 'A fizetési hely használatban van, ezért inaktiváltuk.'
+        : 'A fizetési hely törölve.',
+    })
+    setIsSaving(false)
+  }
+
+  return (
+    <section className="settings-section currency-manager">
+      <div>
+        <h2>Fizetési helyek</h2>
+        <p className="subtle-text">
+          Ugyanez a lista jelenik meg bevételnél és kiadásnál is.
+        </p>
+      </div>
+
+      <form className="payment-source-form" onSubmit={handleCreate}>
+        <label>
+          Név
+          <input
+            value={newName}
+            onChange={(event) => setNewName(event.target.value)}
+            placeholder="Egészség kártya"
+            disabled={isSaving}
+            required
+          />
+        </label>
+        <label>
+          Ikon
+          <input
+            value={newIcon}
+            onChange={(event) => setNewIcon(event.target.value)}
+            maxLength={3}
+            placeholder="✚"
+            disabled={isSaving}
+          />
+        </label>
+        <SourceColorPicker
+          legend="Szín"
+          value={newColor}
+          onChange={setNewColor}
+          disabled={isSaving}
+        />
+        <div className="payment-source-flags">
+          <label className="checkbox-row">
+            <input
+              type="checkbox"
+              checked={newUseIncome}
+              onChange={(event) => setNewUseIncome(event.target.checked)}
+              disabled={isSaving}
+            />
+            Bevételnél
+          </label>
+          <label className="checkbox-row">
+            <input
+              type="checkbox"
+              checked={newUseExpense}
+              onChange={(event) => setNewUseExpense(event.target.checked)}
+              disabled={isSaving}
+            />
+            Kiadásnál
+          </label>
+        </div>
+        <button className="primary-button" type="submit" disabled={isSaving}>
+          Hozzáadás
+        </button>
+      </form>
+
+      {message ? <p className={`message ${message.type}`} role="status">{message.text}</p> : null}
+
+      {isLoading ? (
+        <p className="empty-state">Fizetési helyek betöltése...</p>
+      ) : (
+        <div className="payment-source-list">
+          {sources.map((source) => (
+            <article className="payment-source-item" key={source.id}>
+              <span
+                className="category-icon-large"
+                style={{ backgroundColor: source.color ?? '#0f766e' }}
+                aria-hidden="true"
+              >
+                {source.icon || '•'}
+              </span>
+              {editingId === source.id ? (
+                <div className="payment-source-edit">
+                  <label>
+                    Név
+                    <input
+                      value={editName}
+                      onChange={(event) => setEditName(event.target.value)}
+                      disabled={isSaving}
+                    />
+                  </label>
+                  <label>
+                    Ikon
+                    <input
+                      value={editIcon}
+                      onChange={(event) => setEditIcon(event.target.value)}
+                      maxLength={3}
+                      disabled={isSaving}
+                    />
+                  </label>
+                  <SourceColorPicker
+                    legend="Szín"
+                    value={editColor}
+                    onChange={setEditColor}
+                    disabled={isSaving}
+                  />
+                  <div className="payment-source-flags">
+                    <label className="checkbox-row">
+                      <input
+                        type="checkbox"
+                        checked={editUseIncome}
+                        onChange={(event) => setEditUseIncome(event.target.checked)}
+                        disabled={isSaving}
+                      />
+                      Bevételnél
+                    </label>
+                    <label className="checkbox-row">
+                      <input
+                        type="checkbox"
+                        checked={editUseExpense}
+                        onChange={(event) => setEditUseExpense(event.target.checked)}
+                        disabled={isSaving}
+                      />
+                      Kiadásnál
+                    </label>
+                  </div>
+                  <div className="category-actions">
+                    <button
+                      className="primary-button compact-button"
+                      type="button"
+                      onClick={() => void handleUpdate(source)}
+                      disabled={isSaving}
+                    >
+                      Mentés
+                    </button>
+                    <button
+                      className="secondary-button compact-button"
+                      type="button"
+                      onClick={cancelEditing}
+                      disabled={isSaving}
+                    >
+                      Mégse
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="payment-source-main">
+                    <strong>{source.name}</strong>
+                    <span>
+                      {source.is_active ? 'Aktív' : 'Inaktív'} ·{' '}
+                      {source.use_for_income ? 'bevétel' : ''}
+                      {source.use_for_income && source.use_for_expense ? ', ' : ''}
+                      {source.use_for_expense ? 'kiadás' : ''}
+                    </span>
+                  </div>
+                  <div className="category-actions">
+                    <button
+                      className="secondary-button compact-button"
+                      type="button"
+                      onClick={() => startEditing(source)}
+                      disabled={isSaving}
+                    >
+                      Szerkesztés
+                    </button>
+                    <button
+                      className="secondary-button compact-button"
+                      type="button"
+                      onClick={() => void handleToggleActive(source)}
+                      disabled={isSaving}
+                    >
+                      {source.is_active ? 'Inaktiválás' : 'Aktiválás'}
+                    </button>
+                    <button
+                      className="secondary-button compact-button danger-button"
+                      type="button"
+                      onClick={() => void handleDelete(source)}
+                      disabled={isSaving}
+                    >
+                      Törlés
+                    </button>
+                  </div>
+                </>
+              )}
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
 export function ProfileView({
   userId,
   email,
@@ -461,6 +896,7 @@ export function ProfileView({
   const [isSaving, setIsSaving] = useState(false)
   const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false)
   const [isCurrencyManagerOpen, setIsCurrencyManagerOpen] = useState(false)
+  const [isPaymentSourceManagerOpen, setIsPaymentSourceManagerOpen] = useState(false)
   const [currencies, setCurrencies] = useState<UserCurrency[]>([])
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [openSetting, setOpenSetting] = useState<'theme' | 'accent' | null>(
@@ -580,6 +1016,21 @@ export function ProfileView({
             currencies={currencies}
             onCurrenciesChanged={loadCurrencies}
           />
+        </section>
+      </main>
+    )
+  }
+
+  if (isPaymentSourceManagerOpen) {
+    return (
+      <main className="app-shell page-shell">
+        <section className="settings-panel profile-settings-panel">
+          <CompactSettingsHeader
+            subtitle="Fizetési helyek"
+            onBack={() => setIsPaymentSourceManagerOpen(false)}
+            onBrandClick={onBack}
+          />
+          <PaymentSourceManager userId={userId} />
         </section>
       </main>
     )
@@ -716,6 +1167,12 @@ export function ProfileView({
             title="Kategóriák kezelése"
             subtitle="Nevek, ikonok és színek"
             onClick={() => setIsCategoryManagerOpen(true)}
+          />
+          <SettingsRow
+            icon={<SettingsGlyph>◇</SettingsGlyph>}
+            title="Fizetési helyek"
+            subtitle="Bankszámla, készpénz, kártyák"
+            onClick={() => setIsPaymentSourceManagerOpen(true)}
           />
           <SettingsRow
             icon={<SettingsGlyph>Ft</SettingsGlyph>}

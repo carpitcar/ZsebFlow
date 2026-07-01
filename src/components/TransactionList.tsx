@@ -3,17 +3,21 @@ import { formatCurrency, toNumber } from '../lib/currency'
 import { formatActivePeriodLabel, formatHungarianDate } from '../lib/date'
 import { normalizeCategoryColor } from '../lib/categoryColor'
 import {
-  getPaymentMethodLabel,
+  getPaymentSourceColor,
+  getPaymentSourceIcon,
+  getPaymentSourceLabel,
   paymentMethodFilterOptions,
   type PaymentMethodFilter,
   normalizePaymentMethod,
 } from '../lib/paymentMethod'
-import type { Transaction } from '../types/finance'
+import { resolveTransactionPaymentSource } from '../lib/paymentSources'
+import type { PaymentSource, Transaction } from '../types/finance'
 import { CompactDateRange } from './CompactDateRange'
 
 type TransactionListProps = {
   title: string
   transactions: Transaction[]
+  paymentSources?: PaymentSource[]
   isLoading: boolean
   error: string | null
   dateFrom: string
@@ -88,6 +92,7 @@ function PaymentMethodIcon({
 export function TransactionList({
   title,
   transactions,
+  paymentSources = [],
   isLoading,
   error,
   dateFrom,
@@ -179,6 +184,15 @@ export function TransactionList({
               ''
             const categoryColor = normalizeCategoryColor(category?.color)
             const paymentMethod = normalizePaymentMethod(transaction.payment_method)
+            const resolvedSource = resolveTransactionPaymentSource(paymentSources, transaction)
+            const paymentSourceLabel =
+              resolvedSource?.name ??
+              (isIncome ? category?.name : null) ??
+              getPaymentSourceLabel(transaction, transaction.type)
+            const paymentSourceColor =
+              resolvedSource?.color ?? getPaymentSourceColor(transaction)
+            const paymentSourceIcon =
+              resolvedSource?.icon ?? getPaymentSourceIcon(transaction)
 
             return (
               <button
@@ -208,20 +222,24 @@ export function TransactionList({
                     >
                       {category?.icon || '•'}
                     </span>
-                    {category?.name || 'Kategória nélkül'}
+                    {isIncome ? paymentSourceLabel : category?.name || 'Kategória nélkül'}
                   </span>
                   <span className="transaction-meta">
                     {formatHungarianDate(transaction.transaction_date)}
                     {description ? ` · ${description}` : ''}
                     {!isIncome ? (
-                      <span
-                        className="transaction-payment-method"
-                        aria-label={getPaymentMethodLabel(
-                          paymentMethod,
-                          transaction.type,
+                      <span className="transaction-payment-method" aria-label={paymentSourceLabel}>
+                        {resolvedSource ? (
+                          <span
+                            className="transaction-payment-source-icon"
+                            style={{ backgroundColor: paymentSourceColor }}
+                            aria-hidden="true"
+                          >
+                            {paymentSourceIcon}
+                          </span>
+                        ) : (
+                          <PaymentMethodIcon paymentMethod={paymentMethod} />
                         )}
-                      >
-                        <PaymentMethodIcon paymentMethod={paymentMethod} />
                       </span>
                     ) : null}
                   </span>

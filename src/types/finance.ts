@@ -26,6 +26,21 @@ export type PaymentMethod =
   | 'bank_transfer'
   | 'revolut'
 
+export type PaymentSource = {
+  id: string
+  user_id: string
+  name: string
+  system_key: Exclude<PaymentMethod, 'unknown'> | null
+  icon: string | null
+  color: string | null
+  is_active: boolean
+  use_for_income: boolean
+  use_for_expense: boolean
+  sort_order: number
+  created_at?: string
+  updated_at?: string
+}
+
 export type Category = {
   id: string
   user_id?: string
@@ -40,6 +55,7 @@ export type Transaction = {
   user_id: string
   account_id: string
   category_id: string | null
+  payment_source_id: string | null
   type: TransactionType
   amount: number | string
   currency: string
@@ -49,6 +65,7 @@ export type Transaction = {
   note: string | null
   created_at?: string
   categories?: Category | null
+  payment_sources?: PaymentSource | null
 }
 
 export type TransactionFormValues = {
@@ -56,6 +73,7 @@ export type TransactionFormValues = {
   amount: string
   currency: string
   paymentMethod: PaymentMethod
+  paymentSourceId: string
   categoryId: string
   transactionDate: string
   merchantName: string

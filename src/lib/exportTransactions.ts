@@ -2,7 +2,7 @@ import ExcelJS from 'exceljs'
 import { saveAs } from 'file-saver'
 import { normalizeCurrencyCode, toNumber } from './currency'
 import { formatPeriodLabel } from './date'
-import { getPaymentMethodLabel, normalizePaymentMethod } from './paymentMethod'
+import { getPaymentSourceLabel } from './paymentMethod'
 import type { Transaction } from '../types/finance'
 
 type ExportTransactionsOptions = {
@@ -55,7 +55,10 @@ export async function exportTransactionsXlsx({
     const amount = toNumber(transaction.amount)
     const signedAmount = transaction.type === 'income' ? amount : -amount
     const currencyCode = normalizeCurrencyCode(transaction.currency)
-    const paymentMethod = normalizePaymentMethod(transaction.payment_method)
+    const paymentSourceLabel =
+      transaction.payment_sources?.name ??
+      (transaction.type === 'income' ? transaction.categories?.name : null) ??
+      getPaymentSourceLabel(transaction, transaction.type)
 
     const row = transactionSheet.addRow({
       date: parseLocalDate(transaction.transaction_date),
@@ -63,7 +66,7 @@ export async function exportTransactionsXlsx({
       category: transaction.categories?.name ?? 'Kategória nélkül',
       merchant: transaction.merchant_name ?? '',
       note: transaction.note ?? '',
-      paymentMethod: getPaymentMethodLabel(paymentMethod, transaction.type),
+      paymentMethod: paymentSourceLabel,
       currency: currencyCode,
       amount: signedAmount,
     })

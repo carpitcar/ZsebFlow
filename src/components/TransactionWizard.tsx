@@ -15,16 +15,15 @@ import {
   isCategoryCompatibleWithTransactionType,
 } from '../lib/categoryType'
 import {
-  getPaymentMethodLabel,
-  isExpensePaymentMethod,
+  getSourceLegacyPaymentMethod,
   normalizePaymentMethod,
-  paymentMethodOptions,
-  type PaymentMethod,
 } from '../lib/paymentMethod'
+import { findPaymentSourceByLegacyMethod } from '../lib/paymentSources'
 import { supabase } from '../lib/supabase'
 import type {
   CashAccount,
   Category,
+  PaymentSource,
   TransactionFormValues,
   TransactionType,
   UserCurrency,
@@ -42,6 +41,7 @@ type TransactionWizardProps = {
   userId: string
   account: CashAccount
   categories: Category[]
+  paymentSources: PaymentSource[]
   activeCurrencies: UserCurrency[]
   defaultCurrency: string
   onClose: () => void
@@ -60,6 +60,7 @@ const getInitialValues = (defaultCurrency: string): TransactionFormValues => ({
   amount: '',
   currency: normalizeCurrencyCode(defaultCurrency),
   paymentMethod: 'card',
+  paymentSourceId: '',
   categoryId: '',
   transactionDate: formatLocalDateInput(new Date()),
   merchantName: '',
@@ -70,6 +71,7 @@ export function TransactionWizard({
   userId,
   account,
   categories,
+  paymentSources,
   activeCurrencies,
   defaultCurrency,
   onClose,
@@ -192,15 +194,33 @@ export function TransactionWizard({
   const amount = parseMoneyInput(values.amount)
   const isAmountValid = amount > 0
   const isExpense = values.type === 'expense'
-  const hasValidPaymentMethod = isExpensePaymentMethod(values.paymentMethod)
+  const visiblePaymentSources = useMemo(
+    () =>
+      paymentSources.filter(
+        (source) =>
+          source.is_active &&
+          (isExpense ? source.use_for_expense : source.use_for_income),
+      ),
+    [isExpense, paymentSources],
+  )
+  const selectedPaymentSource = useMemo(
+    () =>
+      visiblePaymentSources.find((source) => source.id === values.paymentSourceId) ??
+      paymentSources.find((source) => source.id === values.paymentSourceId) ??
+      null,
+    [paymentSources, values.paymentSourceId, visiblePaymentSources],
+  )
+  const selectedPaymentSourceId = selectedPaymentSource?.id ?? ''
   const canContinueDetails =
-    (isExpense ? hasValidPaymentMethod && Boolean(selectedCategoryId) : Boolean(selectedCategoryId)) &&
+    Boolean(selectedPaymentSourceId) &&
+    (!isExpense || Boolean(selectedCategoryId)) &&
     Boolean(values.transactionDate)
 
   const hasMeaningfulData =
     step > 1 ||
     values.amount.trim() !== '' ||
     values.categoryId !== '' ||
+    values.paymentSourceId !== '' ||
     values.merchantName.trim() !== '' ||
     values.note.trim() !== '' ||
     values.currency !== normalizeCurrencyCode(defaultCurrency) ||
@@ -214,6 +234,7 @@ export function TransactionWizard({
       ...(field === 'type'
         ? {
             categoryId:
+              value === 'expense' &&
               isCategoryCompatibleWithTransactionType(
                 categories,
                 currentValues.categoryId,
@@ -222,21 +243,65 @@ export function TransactionWizard({
                 ? currentValues.categoryId
                 : '',
             paymentMethod:
-              value === 'income'
-                ? 'unknown'
-                : isExpensePaymentMethod(currentValues.paymentMethod)
-                  ? currentValues.paymentMethod
-                  : 'card',
+              currentValues.paymentSourceId
+                ? getSourceLegacyPaymentMethod(
+                    paymentSources.find(
+                      (source) => source.id === currentValues.paymentSourceId,
+                    ),
+                  )
+                : currentValues.paymentMethod,
           }
         : {}),
     }))
   }
+
+  useEffect(() => {
+    if (values.paymentSourceId) {
+      const currentSource = paymentSources.find(
+        (source) => source.id === values.paymentSourceId,
+      )
+      if (
+        currentSource?.is_active &&
+        (isExpense ? currentSource.use_for_expense : currentSource.use_for_income)
+      ) {
+        return
+      }
+    }
+
+    const fallbackSource =
+      visiblePaymentSources.find((source) => source.system_key === 'card') ??
+      findPaymentSourceByLegacyMethod(visiblePaymentSources, values.paymentMethod) ??
+      visiblePaymentSources[0] ??
+      null
+
+    if (fallbackSource) {
+      setValues((currentValues) => ({
+        ...currentValues,
+        paymentSourceId: fallbackSource.id,
+        paymentMethod: getSourceLegacyPaymentMethod(fallbackSource),
+      }))
+    }
+  }, [
+    isExpense,
+    paymentSources,
+    values.paymentMethod,
+    values.paymentSourceId,
+    visiblePaymentSources,
+  ])
 
   const handleCategorySelect = (categoryId: string) => {
     updateField('categoryId', categoryId)
     if (isExpense) {
       setIsCategoryPickerOpen(false)
     }
+  }
+
+  const handlePaymentSourceSelect = (source: PaymentSource) => {
+    setValues((currentValues) => ({
+      ...currentValues,
+      paymentSourceId: source.id,
+      paymentMethod: getSourceLegacyPaymentMethod(source),
+    }))
   }
 
   const handleClose = () => {
@@ -279,20 +344,18 @@ export function TransactionWizard({
     setMessage(null)
     setIsCategoryPickerOpen(false)
 
-    if (isExpense && !hasValidPaymentMethod) {
+    if (!selectedPaymentSourceId) {
       setMessage({
         type: 'error',
-        text: 'Válassz fizetési módot.',
+        text: isExpense ? 'Válassz fizetési helyet.' : 'Válaszd ki, hová érkezett.',
       })
       return
     }
 
-    if (!selectedCategoryId) {
+    if (isExpense && !selectedCategoryId) {
       setMessage({
         type: 'error',
-        text: isExpense
-          ? 'Válassz kategóriát a tranzakcióhoz.'
-          : 'Válaszd ki, hová érkezett.',
+        text: 'Válassz kategóriát a tranzakcióhoz.',
       })
       return
     }
@@ -340,7 +403,7 @@ export function TransactionWizard({
       return
     }
 
-    if (!selectedCategoryId || !values.transactionDate) {
+    if (!selectedPaymentSourceId || (isExpense && !selectedCategoryId) || !values.transactionDate) {
       setMessage({
         type: 'error',
         text: isExpense
@@ -358,12 +421,13 @@ export function TransactionWizard({
       const { error } = await supabase.from('transactions').insert({
         user_id: userId,
         account_id: account.id,
-        category_id: selectedCategoryId,
+        category_id: isExpense ? selectedCategoryId : null,
+        payment_source_id: selectedPaymentSourceId,
         type: values.type,
         amount,
         currency: normalizeCurrencyCode(values.currency),
-        payment_method: isExpense
-          ? normalizePaymentMethod(values.paymentMethod)
+        payment_method: selectedPaymentSource?.system_key
+          ? normalizePaymentMethod(selectedPaymentSource.system_key)
           : 'unknown',
         transaction_date: values.transactionDate,
         merchant_name: merchantName || null,
@@ -707,61 +771,40 @@ export function TransactionWizard({
               >
                 <div className="wizard-field-group">
                   <span className="wizard-field-label">
-                    {isExpense ? 'Fizetési mód' : 'Hová érkezett?'}
+                    {isExpense ? 'Mivel fizettél?' : 'Hová érkezett?'}
                   </span>
-                  {isExpense ? (
+                  {visiblePaymentSources.length === 0 ? (
+                    <p className="wizard-category-empty" role="status">
+                      Nincs aktív fizetési hely.
+                    </p>
+                  ) : (
                     <div className="wizard-payment-grid">
-                      {paymentMethodOptions.map((option) => (
+                      {visiblePaymentSources.map((source) => (
                         <button
-                          key={option.value}
+                          key={source.id}
                           type="button"
                           className={[
                             'wizard-payment-option',
-                            values.paymentMethod === option.value ? 'active' : '',
+                            selectedPaymentSourceId === source.id ? 'active' : '',
                           ]
                             .filter(Boolean)
                             .join(' ')}
-                          onClick={() =>
-                            updateField('paymentMethod', option.value as PaymentMethod)
-                          }
-                          aria-pressed={values.paymentMethod === option.value}
-                        >
-                          {option.label}
-                        </button>
-                      ))}
-                    </div>
-                  ) : matchingCategories.length === 0 ? (
-                    <p className="wizard-category-empty" role="status">
-                      {categoryTypeEmptyMessages[values.type]}
-                    </p>
-                  ) : (
-                    <div className="wizard-income-category-grid">
-                      {matchingCategories.map((category) => (
-                        <button
-                          key={category.id}
-                          type="button"
-                          className={[
-                            'wizard-income-category-option',
-                            selectedCategoryId === category.id ? 'active' : '',
-                          ]
-                            .filter(Boolean)
-                            .join(' ')}
-                          onClick={() => handleCategorySelect(category.id)}
-                          aria-pressed={selectedCategoryId === category.id}
+                          onClick={() => handlePaymentSourceSelect(source)}
+                          aria-pressed={selectedPaymentSourceId === source.id}
                           style={
                             {
-                              '--category-color': category.color,
+                              '--category-color': source.color ?? 'var(--accent)',
                             } as CSSProperties
                           }
                         >
                           <span
                             className="wizard-category-icon"
-                            style={{ backgroundColor: category.color }}
+                            style={{ backgroundColor: source.color ?? 'var(--accent)' }}
                             aria-hidden="true"
                           >
-                            {category.icon || '•'}
+                            {source.icon || '•'}
                           </span>
-                          <span>{category.name}</span>
+                          <span>{source.name}</span>
                         </button>
                       ))}
                     </div>
@@ -915,11 +958,7 @@ export function TransactionWizard({
                   </div>
                   <div>
                     <dt>{isExpense ? 'Fizetési mód' : 'Hová érkezett'}</dt>
-                    <dd>
-                      {isExpense
-                        ? getPaymentMethodLabel(values.paymentMethod, values.type)
-                        : selectedCategory?.name ?? 'Nincs kiválasztva'}
-                    </dd>
+                    <dd>{selectedPaymentSource?.name ?? 'Nincs kiválasztva'}</dd>
                   </div>
                   {isExpense ? (
                     <div>

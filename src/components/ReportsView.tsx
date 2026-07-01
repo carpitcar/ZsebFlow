@@ -14,8 +14,13 @@ import {
 } from '../lib/date'
 import { ensureDefaultIncomeCategories } from '../lib/defaultCategories'
 import { exportTransactionsXlsx } from '../lib/exportTransactions'
-import { getLegacyIncomeCategoryName } from '../lib/incomeCategories'
-import { normalizePaymentMethod } from '../lib/paymentMethod'
+import {
+  getPaymentSourceColor,
+  getPaymentSourceIcon,
+  getPaymentSourceLabel,
+  normalizePaymentMethod,
+} from '../lib/paymentMethod'
+import { loadPaymentSources, resolveTransactionPaymentSource } from '../lib/paymentSources'
 import { supabase } from '../lib/supabase'
 import {
   ensureInitialUserCurrencies,
@@ -26,6 +31,7 @@ import type {
   CashAccount,
   Category,
   PaymentMethod,
+  PaymentSource,
   Transaction,
   UserCurrency,
 } from '../types/finance'
@@ -49,11 +55,11 @@ type Message = {
   text: string
 }
 
-type IncomeGroupKey = `category:${string}` | `legacy:${PaymentMethod}`
+type IncomeGroupKey = `source:${string}` | `legacy:${PaymentMethod}`
 
 type IncomeDistributionItem = {
   key: IncomeGroupKey
-  categoryId: string | null
+  paymentSourceId: string | null
   paymentMethod: PaymentMethod | null
   label: string
   color: string
@@ -71,15 +77,6 @@ const selectDefaultAccount = (accounts: CashAccount[]) =>
   accounts.find((account) => account.name === 'Házipénztár') ??
   accounts[0] ??
   null
-
-const legacyIncomeColors: Record<PaymentMethod, string> = {
-  bank_transfer: '#2563eb',
-  revolut: '#06b6d4',
-  cash: '#16a34a',
-  szep_card: '#f59e0b',
-  card: '#7c3aed',
-  unknown: '#64748b',
-}
 
 const polarToCartesian = (
   centerX: number,
@@ -146,6 +143,7 @@ export function ReportsView({
   const hasAppliedDefaultCurrencyRef = useRef(false)
   const [account, setAccount] = useState<CashAccount | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
+  const [paymentSources, setPaymentSources] = useState<PaymentSource[]>([])
   const [currencies, setCurrencies] = useState<UserCurrency[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [dateFrom, setDateFrom] = useState(initialRange.firstDay)
@@ -181,6 +179,7 @@ export function ReportsView({
     if (accountError) {
       setAccount(null)
       setCategories([])
+      setPaymentSources([])
       setTransactions([])
       setMessage({
         type: 'error',
@@ -211,6 +210,7 @@ export function ReportsView({
     const [
       { data: categoryRows, error: categoryError },
       { data: transactionRows, error: transactionError },
+      { data: paymentSourceRows, error: paymentSourceError },
     ] = await Promise.all([
       supabase
         .from('categories')
@@ -220,7 +220,7 @@ export function ReportsView({
       supabase
         .from('transactions')
         .select(
-          'id, user_id, account_id, category_id, type, amount, currency, payment_method, transaction_date, merchant_name, note, created_at, categories(*)',
+          'id, user_id, account_id, category_id, payment_source_id, type, amount, currency, payment_method, transaction_date, merchant_name, note, created_at, categories(*), payment_sources(*)',
         )
         .eq('user_id', userId)
         .eq('account_id', defaultAccount.id)
@@ -229,21 +229,24 @@ export function ReportsView({
         .lte('transaction_date', dateTo)
         .order('transaction_date', { ascending: false })
         .order('created_at', { ascending: false }),
+      loadPaymentSources(userId),
     ])
 
     if (requestId !== loadRequestRef.current) {
       return
     }
 
-    if (categoryError || transactionError) {
+    if (categoryError || transactionError || paymentSourceError) {
       setAccount(defaultAccount)
       setCategories([])
+      setPaymentSources([])
       setTransactions([])
       setMessage({
         type: 'error',
         text:
           categoryError?.message ??
           transactionError?.message ??
+          paymentSourceError?.message ??
           'Nem sikerült betölteni a riport adatokat.',
       })
       setIsLoading(false)
@@ -252,6 +255,7 @@ export function ReportsView({
 
     setAccount(defaultAccount)
     setCategories((categoryRows ?? []) as Category[])
+    setPaymentSources((paymentSourceRows ?? []) as PaymentSource[])
     setTransactions((transactionRows ?? []) as unknown as Transaction[])
     setIsLoading(false)
   }, [dateFrom, dateTo, selectedCurrency, userId])
@@ -318,8 +322,25 @@ export function ReportsView({
     }
 
     return transactions.filter((transaction) => {
-      if (selectedIncomeGroup.startsWith('category:')) {
-        return transaction.category_id === selectedIncomeGroup.slice(9)
+      if (selectedIncomeGroup.startsWith('source:')) {
+        const sourceId = selectedIncomeGroup.slice(7)
+        const resolvedSource = resolveTransactionPaymentSource(paymentSources, transaction)
+        const sourceByLegacyCategory =
+          transaction.type === 'income' && transaction.categories?.name
+            ? paymentSources.find(
+                (source) =>
+                  source.name.localeCompare(
+                    transaction.categories?.name ?? '',
+                    'hu-HU',
+                    { sensitivity: 'base' },
+                  ) === 0,
+              )
+            : null
+        return (
+          transaction.payment_source_id === sourceId ||
+          (!transaction.payment_source_id && resolvedSource?.id === sourceId) ||
+          (!transaction.payment_source_id && sourceByLegacyCategory?.id === sourceId)
+        )
       }
 
       return (
@@ -328,7 +349,7 @@ export function ReportsView({
           selectedIncomeGroup.slice(7)
       )
     })
-  }, [selectedIncomeGroup, transactions])
+  }, [paymentSources, selectedIncomeGroup, transactions])
 
   const summaryTotals = useMemo(
     () =>
@@ -418,7 +439,7 @@ export function ReportsView({
       IncomeGroupKey,
       {
         key: IncomeGroupKey
-        categoryId: string | null
+        paymentSourceId: string | null
         paymentMethod: PaymentMethod | null
         label: string
         color: string
@@ -434,23 +455,32 @@ export function ReportsView({
       }
 
       const category = transaction.categories
+      const resolvedSource =
+        resolveTransactionPaymentSource(paymentSources, transaction) ??
+        (category?.name
+          ? paymentSources.find(
+              (source) =>
+                source.name.localeCompare(category.name, 'hu-HU', {
+                  sensitivity: 'base',
+                }) === 0,
+            )
+          : null)
       const paymentMethod = normalizePaymentMethod(transaction.payment_method)
-      const key: IncomeGroupKey = transaction.category_id
-        ? `category:${transaction.category_id}`
+      const key: IncomeGroupKey = resolvedSource
+        ? `source:${resolvedSource.id}`
         : `legacy:${paymentMethod}`
       const currentValue =
         distributionMap.get(key) ??
         {
           key,
-          categoryId: transaction.category_id,
-          paymentMethod: transaction.category_id ? null : paymentMethod,
+          paymentSourceId: resolvedSource?.id ?? null,
+          paymentMethod: resolvedSource ? null : paymentMethod,
           label:
+            resolvedSource?.name ??
             category?.name ??
-            getLegacyIncomeCategoryName(transaction.payment_method),
-          color: transaction.category_id
-            ? normalizeCategoryColor(category?.color)
-            : legacyIncomeColors[paymentMethod],
-          icon: category?.icon ?? null,
+            getPaymentSourceLabel(transaction, transaction.type),
+          color: resolvedSource?.color ?? getPaymentSourceColor(transaction),
+          icon: resolvedSource?.icon ?? getPaymentSourceIcon(transaction),
           amount: 0,
           count: 0,
         }
@@ -488,7 +518,7 @@ export function ReportsView({
           midAngle: startAngle + (endAngle - startAngle) / 2,
         }
       })
-  }, [transactions])
+  }, [paymentSources, transactions])
 
   useEffect(() => {
     if (
@@ -727,6 +757,7 @@ export function ReportsView({
           <TransactionList
             title="Tételek"
             transactions={transactions}
+            paymentSources={paymentSources}
             isLoading={isLoading}
             error={message?.type === 'error' ? message.text : null}
             dateFrom={dateFrom}
@@ -987,6 +1018,7 @@ export function ReportsView({
           userId={userId}
           account={account}
           categories={categories}
+          paymentSources={paymentSources}
           activeCurrencies={activeCurrencies}
           defaultCurrency={defaultCurrency}
           onClose={() => setIsFormOpen(false)}
@@ -997,6 +1029,7 @@ export function ReportsView({
       {selectedTransaction ? (
         <TransactionDetails
           transaction={selectedTransaction}
+          paymentSources={paymentSources}
           isDeleting={isDeleting}
           onClose={() => {
             setSelectedTransaction(null)
@@ -1012,6 +1045,7 @@ export function ReportsView({
           userId={userId}
           transaction={selectedTransaction}
           categories={categories}
+          paymentSources={paymentSources}
           activeCurrencies={activeCurrencies}
           onClose={() => setIsEditOpen(false)}
           onSaved={handleTransactionUpdated}

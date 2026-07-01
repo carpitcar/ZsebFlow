@@ -1702,6 +1702,18 @@ button.metric-card {
   stroke-width: 1.9;
 }
 
+.transaction-payment-source-icon {
+  width: 18px;
+  height: 18px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 850;
+  line-height: 1;
+}
+
 .transaction-amount {
   color: var(--text-strong);
   font-weight: 800;
@@ -2157,22 +2169,23 @@ button.metric-card {
 }
 
 .wizard-payment-option {
-  min-height: 44px;
-  display: inline-flex;
+  min-height: 52px;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
   align-items: center;
-  justify-content: center;
+  gap: 8px;
   border: 1px solid var(--control-border-subtle);
   cursor: pointer;
-  padding: 8px 7px;
+  padding: 8px;
   font-size: 13px;
   font-weight: 750;
   line-height: 1.2;
-  text-align: center;
-  overflow-wrap: anywhere;
+  text-align: left;
 }
 
-.wizard-payment-option:last-child {
-  grid-column: 1 / -1;
+.wizard-payment-option span:last-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .wizard-income-category-grid {
@@ -2217,8 +2230,12 @@ button.metric-card {
 }
 
 .wizard-payment-option.active {
-  border-color: var(--accent);
-  background: var(--accent-soft);
+  border-color: var(--category-color, var(--accent));
+  background: color-mix(
+    in srgb,
+    var(--category-color, var(--accent)) 14%,
+    var(--surface)
+  );
   color: var(--text-strong);
   box-shadow: 0 0 0 2px var(--input-focus-color);
 }
@@ -3410,6 +3427,74 @@ button.settings-row {
 .currency-list {
   display: grid;
   gap: 8px;
+}
+
+.payment-source-form,
+.payment-source-edit {
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.payment-source-form {
+  grid-template-columns: minmax(0, 1fr) minmax(84px, 0.35fr);
+  align-items: end;
+}
+
+.payment-source-form .category-color-picker,
+.payment-source-form .payment-source-flags,
+.payment-source-form .primary-button {
+  grid-column: 1 / -1;
+}
+
+.payment-source-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.payment-source-list {
+  display: grid;
+  gap: 8px;
+}
+
+.payment-source-item {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  border: 1px solid color-mix(in srgb, var(--border), transparent 30%);
+  border-radius: 14px;
+  background: var(--control-bg);
+  padding: 10px;
+}
+
+.payment-source-main,
+.payment-source-edit {
+  min-width: 0;
+}
+
+.payment-source-main {
+  display: grid;
+  gap: 2px;
+}
+
+.payment-source-main strong,
+.payment-source-main span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.payment-source-main strong {
+  color: var(--text-strong);
+}
+
+.payment-source-main span {
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .currency-item {

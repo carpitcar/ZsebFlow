@@ -1,12 +1,16 @@
 import { formatCurrency, normalizeCurrencyCode, toNumber } from '../lib/currency'
 import { formatHungarianDate } from '../lib/date'
 import { normalizeCategoryColor } from '../lib/categoryColor'
-import { getLegacyIncomeCategoryName } from '../lib/incomeCategories'
-import { getPaymentMethodLabel } from '../lib/paymentMethod'
-import type { Transaction } from '../types/finance'
+import {
+  getPaymentSourceColor,
+  getPaymentSourceLabel,
+} from '../lib/paymentMethod'
+import { resolveTransactionPaymentSource } from '../lib/paymentSources'
+import type { PaymentSource, Transaction } from '../types/finance'
 
 type TransactionDetailsProps = {
   transaction: Transaction
+  paymentSources: PaymentSource[]
   isDeleting: boolean
   onClose: () => void
   onEdit: () => void
@@ -15,12 +19,20 @@ type TransactionDetailsProps = {
 
 export function TransactionDetails({
   transaction,
+  paymentSources,
   isDeleting,
   onClose,
   onEdit,
   onDelete,
 }: TransactionDetailsProps) {
   const isIncome = transaction.type === 'income'
+  const resolvedPaymentSource = resolveTransactionPaymentSource(paymentSources, transaction)
+  const paymentSourceLabel =
+    resolvedPaymentSource?.name ??
+    (isIncome ? transaction.categories?.name : null) ??
+    getPaymentSourceLabel(transaction, transaction.type)
+  const paymentSourceColor =
+    resolvedPaymentSource?.color ?? getPaymentSourceColor(transaction)
 
   const handleDelete = () => {
     const isConfirmed = window.confirm(
@@ -67,27 +79,16 @@ export function TransactionDetails({
             <dd>{normalizeCurrencyCode(transaction.currency)}</dd>
           </div>
           <div className="transaction-detail-row">
-            <dt>{isIncome ? 'Hová érkezett' : 'Fizetési mód'}</dt>
+            <dt>{isIncome ? 'Hová érkezett' : 'Fizetési hely'}</dt>
             <dd>
-              {isIncome ? (
-                <span className="detail-category-value">
-                  <span
-                    className="detail-category-color"
-                    aria-hidden="true"
-                    style={{
-                      backgroundColor: normalizeCategoryColor(
-                        transaction.categories?.color,
-                      ),
-                    }}
-                  />
-                  <span>
-                    {transaction.categories?.name ||
-                      getLegacyIncomeCategoryName(transaction.payment_method)}
-                  </span>
-                </span>
-              ) : (
-                getPaymentMethodLabel(transaction.payment_method, transaction.type)
-              )}
+              <span className="detail-category-value">
+                <span
+                  className="detail-category-color"
+                  aria-hidden="true"
+                  style={{ backgroundColor: paymentSourceColor }}
+                />
+                <span>{paymentSourceLabel}</span>
+              </span>
             </dd>
           </div>
           {!isIncome ? (

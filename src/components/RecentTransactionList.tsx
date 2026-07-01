@@ -2,6 +2,11 @@ import type { CSSProperties } from 'react'
 import { formatCurrency, toNumber } from '../lib/currency'
 import { formatHungarianDate } from '../lib/date'
 import { normalizeCategoryColor } from '../lib/categoryColor'
+import {
+  getPaymentSourceColor,
+  getPaymentSourceIcon,
+  getPaymentSourceLabel,
+} from '../lib/paymentMethod'
 import type { Transaction } from '../types/finance'
 
 type RecentTransactionListProps = {
@@ -41,7 +46,16 @@ export function RecentTransactionList({
             const isIncome = transaction.type === 'income'
             const description =
               transaction.merchant_name?.trim() || transaction.note?.trim() || ''
-            const categoryColor = normalizeCategoryColor(category?.color)
+            const paymentSourceLabel = getPaymentSourceLabel(transaction, transaction.type)
+            const displayName = isIncome
+              ? transaction.payment_sources?.name ?? category?.name ?? paymentSourceLabel
+              : category?.name || 'Kategória nélkül'
+            const displayIcon = isIncome
+              ? getPaymentSourceIcon(transaction)
+              : category?.icon || '-'
+            const displayColor = isIncome
+              ? getPaymentSourceColor(transaction)
+              : normalizeCategoryColor(category?.color)
 
             return (
               <button
@@ -52,7 +66,7 @@ export function RecentTransactionList({
                 type="button"
                 style={
                   {
-                    '--category-color': categoryColor,
+                    '--category-color': displayColor,
                   } as CSSProperties
                 }
                 onClick={() => onSelect(transaction)}
@@ -61,13 +75,13 @@ export function RecentTransactionList({
                   className="recent-transaction-icon"
                   aria-hidden="true"
                   style={{
-                    backgroundColor: categoryColor,
+                    backgroundColor: displayColor,
                   }}
                 >
-                  {category?.icon || (isIncome ? '+' : '-')}
+                  {displayIcon}
                 </span>
                 <span className="recent-transaction-main">
-                  <strong>{category?.name || 'Kategória nélkül'}</strong>
+                  <strong>{displayName}</strong>
                   {description ? <span>{description}</span> : null}
                 </span>
                 <span className="recent-transaction-side">

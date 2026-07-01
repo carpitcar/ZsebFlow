@@ -7,17 +7,18 @@ import {
   isCategoryCompatibleWithTransactionType,
 } from '../lib/categoryType'
 import {
-  isExpensePaymentMethod,
-  paymentMethodOptions,
-  paymentMethodLabels,
+  getSourceLegacyPaymentMethod,
   normalizePaymentMethod,
-  type PaymentMethod,
 } from '../lib/paymentMethod'
-import { findLegacyIncomeCategory } from '../lib/incomeCategories'
+import {
+  findPaymentSourceByLegacyMethod,
+  resolveTransactionPaymentSource,
+} from '../lib/paymentSources'
 import { numberToMoneyInput, parseMoneyInput } from '../lib/money'
 import { supabase } from '../lib/supabase'
 import type {
   Category,
+  PaymentSource,
   Transaction,
   TransactionFormValues,
   TransactionType,
@@ -35,6 +36,7 @@ type TransactionEditFormProps = {
   userId: string
   transaction: Transaction
   categories: Category[]
+  paymentSources: PaymentSource[]
   activeCurrencies: UserCurrency[]
   onClose: () => void
   onSaved: (transaction: Transaction) => Promise<void>
@@ -45,6 +47,7 @@ const getInitialValues = (transaction: Transaction): TransactionFormValues => ({
   amount: numberToMoneyInput(transaction.amount),
   currency: normalizeCurrencyCode(transaction.currency),
   paymentMethod: normalizePaymentMethod(transaction.payment_method),
+  paymentSourceId: transaction.payment_source_id ?? '',
   categoryId: transaction.category_id ?? '',
   transactionDate: transaction.transaction_date,
   merchantName: transaction.merchant_name ?? '',
@@ -55,6 +58,7 @@ export function TransactionEditForm({
   userId,
   transaction,
   categories,
+  paymentSources,
   activeCurrencies,
   onClose,
   onSaved,
@@ -101,14 +105,30 @@ export function TransactionEditForm({
   }, [activeCurrencies, userId, values.currency])
 
   const isExpense = values.type === 'expense'
-  const hasValidPaymentMethod = isExpensePaymentMethod(values.paymentMethod)
-
-  const paymentMethodSelectOptions = useMemo(
-    () => [
-      { value: 'unknown' as const, label: paymentMethodLabels.unknown },
-      ...paymentMethodOptions,
-    ],
-    [],
+  const visiblePaymentSources = useMemo(
+    () =>
+      paymentSources.filter(
+        (source) =>
+          source.is_active &&
+          (isExpense ? source.use_for_expense : source.use_for_income),
+      ),
+    [isExpense, paymentSources],
+  )
+  const selectedPaymentSource = useMemo(
+    () =>
+      resolveTransactionPaymentSource(paymentSources, {
+        payment_source_id: values.paymentSourceId,
+        payment_method: values.paymentMethod,
+      }),
+    [paymentSources, values.paymentMethod, values.paymentSourceId],
+  )
+  const paymentSourceOptions = useMemo(
+    () =>
+      selectedPaymentSource &&
+      !visiblePaymentSources.some((source) => source.id === selectedPaymentSource.id)
+        ? [selectedPaymentSource, ...visiblePaymentSources]
+        : visiblePaymentSources,
+    [selectedPaymentSource, visiblePaymentSources],
   )
 
   const selectedCategoryId =
@@ -134,22 +154,26 @@ export function TransactionEditForm({
   }, [categories, values.categoryId, values.type])
 
   useEffect(() => {
-    if (values.type !== 'income' || values.categoryId) {
-      return
-    }
+    if (values.paymentSourceId) return
 
-    const legacyCategory = findLegacyIncomeCategory(
-      categories,
-      transaction.payment_method,
-    )
+    const fallbackSource =
+      transaction.payment_source_id
+        ? paymentSources.find((source) => source.id === transaction.payment_source_id)
+        : findPaymentSourceByLegacyMethod(paymentSources, transaction.payment_method)
 
-    if (legacyCategory) {
+    if (fallbackSource) {
       setValues((currentValues) => ({
         ...currentValues,
-        categoryId: legacyCategory.id,
+        paymentSourceId: fallbackSource.id,
+        paymentMethod: getSourceLegacyPaymentMethod(fallbackSource),
       }))
     }
-  }, [categories, transaction.payment_method, values.categoryId, values.type])
+  }, [
+    paymentSources,
+    transaction.payment_method,
+    transaction.payment_source_id,
+    values.paymentSourceId,
+  ])
 
   const updateField = (
     field: keyof TransactionFormValues,
@@ -161,6 +185,7 @@ export function TransactionEditForm({
       ...(field === 'type'
         ? {
             categoryId:
+              value === 'expense' &&
               isCategoryCompatibleWithTransactionType(
                 categories,
                 currentValues.categoryId,
@@ -169,11 +194,13 @@ export function TransactionEditForm({
                 ? currentValues.categoryId
                 : '',
             paymentMethod:
-              value === 'income'
-                ? 'unknown'
-                : isExpensePaymentMethod(currentValues.paymentMethod)
-                  ? currentValues.paymentMethod
-                  : 'card',
+              currentValues.paymentSourceId
+                ? getSourceLegacyPaymentMethod(
+                    paymentSources.find(
+                      (source) => source.id === currentValues.paymentSourceId,
+                    ),
+                  )
+                : currentValues.paymentMethod,
           }
         : {}),
     }))
@@ -199,20 +226,18 @@ export function TransactionEditForm({
       return
     }
 
-    if (isExpense && !hasValidPaymentMethod) {
+    if (!selectedPaymentSource) {
       setMessage({
         type: 'error',
-        text: 'Válassz fizetési módot.',
+        text: isExpense ? 'Válassz fizetési helyet.' : 'Válaszd ki, hová érkezett.',
       })
       return
     }
 
-    if (!selectedCategoryId) {
+    if (isExpense && !selectedCategoryId) {
       setMessage({
         type: 'error',
-        text: isExpense
-          ? 'Válassz a típushoz tartozó kategóriát.'
-          : 'Válassz bevételi kategóriát.',
+        text: 'Válassz a típushoz tartozó kategóriát.',
       })
       return
     }
@@ -230,20 +255,21 @@ export function TransactionEditForm({
     const { data, error } = await supabase
       .from('transactions')
       .update({
-        category_id: selectedCategoryId,
+        category_id: isExpense ? selectedCategoryId : null,
+        payment_source_id: selectedPaymentSource.id,
         type: values.type,
         amount,
         currency: normalizeCurrencyCode(values.currency),
-        payment_method: isExpense
-          ? normalizePaymentMethod(values.paymentMethod)
-          : normalizePaymentMethod(transaction.payment_method) ?? 'unknown',
+        payment_method: selectedPaymentSource.system_key
+          ? normalizePaymentMethod(selectedPaymentSource.system_key)
+          : 'unknown',
         transaction_date: values.transactionDate,
         merchant_name: merchantName || null,
         note: note || null,
       })
       .eq('id', transaction.id)
       .eq('user_id', userId)
-      .select('*, categories(*)')
+      .select('*, categories(*), payment_sources(*)')
       .single()
 
     if (error) {
@@ -327,55 +353,59 @@ export function TransactionEditForm({
             </select>
           </label>
 
-          {isExpense ? (
-            <label htmlFor="editTransactionPaymentMethod">
-              Fizetési mód
-              <select
-                id="editTransactionPaymentMethod"
-                value={values.paymentMethod}
-                onChange={(event) =>
-                  updateField(
-                    'paymentMethod',
-                    event.target.value as PaymentMethod,
-                  )
-                }
-                required
-                disabled={isSaving}
-              >
-                {paymentMethodSelectOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
-
-          <label htmlFor="editTransactionCategory">
-            {isExpense ? 'Kategória' : 'Hová érkezett?'}
+          <label htmlFor="editTransactionPaymentSource">
+            {isExpense ? 'Mivel fizettél?' : 'Hová érkezett?'}
             <select
-              id="editTransactionCategory"
-              value={selectedCategoryId}
-              onChange={(event) => updateField('categoryId', event.target.value)}
+              id="editTransactionPaymentSource"
+              value={selectedPaymentSource?.id ?? ''}
+              onChange={(event) => {
+                const source = paymentSources.find(
+                  (paymentSource) => paymentSource.id === event.target.value,
+                )
+                setValues((currentValues) => ({
+                  ...currentValues,
+                  paymentSourceId: event.target.value,
+                  paymentMethod: getSourceLegacyPaymentMethod(source),
+                }))
+              }}
               required
               disabled={isSaving}
             >
-              <option value="">
-                {isExpense ? 'Válassz kategóriát' : 'Válassz érkezési helyet'}
-              </option>
-              {matchingCategories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.icon ? `${category.icon} ` : ''}
-                  {category.name}
+              <option value="">Válassz fizetési helyet</option>
+              {paymentSourceOptions.map((source) => (
+                <option key={source.id} value={source.id}>
+                  {source.icon ? `${source.icon} ` : ''}
+                  {source.name}
                 </option>
               ))}
             </select>
-            {matchingCategories.length === 0 ? (
-              <span className="field-hint">
-                {categoryTypeEmptyMessages[values.type]}
-              </span>
-            ) : null}
           </label>
+
+          {isExpense ? (
+            <label htmlFor="editTransactionCategory">
+              Kategória
+              <select
+                id="editTransactionCategory"
+                value={selectedCategoryId}
+                onChange={(event) => updateField('categoryId', event.target.value)}
+                required
+                disabled={isSaving}
+              >
+                <option value="">Válassz kategóriát</option>
+                {matchingCategories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.icon ? `${category.icon} ` : ''}
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+              {matchingCategories.length === 0 ? (
+                <span className="field-hint">
+                  {categoryTypeEmptyMessages[values.type]}
+                </span>
+              ) : null}
+            </label>
+          ) : null}
 
           <DatePicker
             id="editTransactionDate"

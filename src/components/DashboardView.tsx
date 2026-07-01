@@ -7,6 +7,7 @@ import {
 } from '../lib/date'
 import { normalizeCategoryColor } from '../lib/categoryColor'
 import { ensureDefaultIncomeCategories } from '../lib/defaultCategories'
+import { loadPaymentSources } from '../lib/paymentSources'
 import { supabase } from '../lib/supabase'
 import {
   ensureInitialUserCurrencies,
@@ -16,6 +17,7 @@ import {
 import type {
   CashAccount,
   Category,
+  PaymentSource,
   Transaction,
   UserCurrency,
 } from '../types/finance'
@@ -64,6 +66,7 @@ export function DashboardView({
   const handledNewTransactionRequestRef = useRef(0)
   const [account, setAccount] = useState<CashAccount | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
+  const [paymentSources, setPaymentSources] = useState<PaymentSource[]>([])
   const [currencies, setCurrencies] = useState<UserCurrency[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -149,6 +152,7 @@ export function DashboardView({
       })
       setAccount(null)
       setCategories([])
+      setPaymentSources([])
       setTransactions([])
       setIsLoading(false)
       return
@@ -161,6 +165,7 @@ export function DashboardView({
     if (!defaultAccount) {
       setAccount(null)
       setCategories([])
+      setPaymentSources([])
       setTransactions([])
       setIsLoading(false)
       return
@@ -176,6 +181,7 @@ export function DashboardView({
       { data: categoryRows, error: categoryError },
       { data: transactionRows, error: transactionError },
       { data: currencyRows, error: currencyError },
+      { data: paymentSourceRows, error: paymentSourceError },
     ] = await Promise.all([
       supabase
         .from('categories')
@@ -184,29 +190,32 @@ export function DashboardView({
         .order('name', { ascending: true }),
       supabase
         .from('transactions')
-        .select('*, categories(*)')
+        .select('*, categories(*), payment_sources(*)')
         .eq('user_id', userId)
         .eq('account_id', defaultAccount.id)
         .order('transaction_date', { ascending: false })
         .order('created_at', { ascending: false }),
       ensureInitialUserCurrencies(userId),
+      loadPaymentSources(userId),
     ])
 
     if (requestId !== loadRequestRef.current) {
       return
     }
 
-    if (categoryError || transactionError || currencyError) {
+    if (categoryError || transactionError || currencyError || paymentSourceError) {
       setMessage({
         type: 'error',
         text:
           categoryError?.message ??
           transactionError?.message ??
           currencyError?.message ??
+          paymentSourceError?.message ??
           'Nem sikerült betölteni az adatokat.',
       })
       setAccount(defaultAccount)
       setCategories([])
+      setPaymentSources([])
       setCurrencies([])
       setTransactions([])
       setIsLoading(false)
@@ -215,6 +224,7 @@ export function DashboardView({
 
     setAccount(defaultAccount)
     setCategories((categoryRows ?? []) as Category[])
+    setPaymentSources((paymentSourceRows ?? []) as PaymentSource[])
     setCurrencies(currencyRows)
     setTransactions((transactionRows ?? []) as Transaction[])
     setIsLoading(false)
@@ -398,6 +408,7 @@ export function DashboardView({
           userId={userId}
           account={account}
           categories={categories}
+          paymentSources={paymentSources}
           activeCurrencies={activeCurrencies}
           defaultCurrency={defaultCurrency}
           onClose={() => setIsFormOpen(false)}
@@ -408,6 +419,7 @@ export function DashboardView({
       {selectedTransaction ? (
         <TransactionDetails
           transaction={selectedTransaction}
+          paymentSources={paymentSources}
           isDeleting={isDeleting}
           onClose={() => {
             setSelectedTransaction(null)
@@ -423,6 +435,7 @@ export function DashboardView({
           userId={userId}
           transaction={selectedTransaction}
           categories={categories}
+          paymentSources={paymentSources}
           activeCurrencies={activeCurrencies}
           onClose={() => setIsEditOpen(false)}
           onSaved={handleTransactionUpdated}
