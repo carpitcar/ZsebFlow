@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import type { CSSProperties, FormEvent } from 'react'
+import type { IScannerControls } from '@zxing/browser'
 import {
   createLoyaltyCard,
   createSignedImageUrls,
@@ -8,8 +10,13 @@ import {
   toggleFavorite,
   updateLoyaltyCard,
   uploadCardImage,
-  validateLoyaltyCardImage,
 } from '../lib/loyaltyCards'
+import {
+  detectBarcodeFromFile,
+  inferManualBarcodeFormat,
+  prepareBarcodeImage,
+  startLiveBarcodeScanner,
+} from '../services/barcodeDetection'
 import type { BarcodeFormat, LoyaltyCard } from '../types/loyaltyCards'
 import { BrandHeader } from './BrandHeader'
 import { MobileBottomNav } from './MobileBottomNav'
@@ -25,6 +32,8 @@ type LoyaltyCardsViewProps = {
 
 type Message = { type: 'success' | 'error'; text: string }
 type ImageUrls = Record<string, { front: string | null; back: string | null }>
+type FormStep = 'front' | 'barcode' | 'confirm'
+type RecognitionState = 'idle' | 'scanning' | 'success' | 'failed' | 'manual'
 
 type CardFormState = {
   name: string
@@ -43,25 +52,34 @@ const emptyForm: CardFormState = {
   provider: '',
   cardNumber: '',
   barcodeValue: '',
-  barcodeFormat: 'code128',
+  barcodeFormat: 'other',
   color: '#0f766e',
   icon: '★',
   notes: '',
   isFavorite: false,
 }
 
-const barcodeFormats: Array<{ value: BarcodeFormat; label: string }> = [
-  { value: 'code128', label: 'Code 128' },
-  { value: 'ean13', label: 'EAN-13' },
-  { value: 'ean8', label: 'EAN-8' },
-  { value: 'qr', label: 'QR' },
-  { value: 'other', label: 'Egyéb' },
-]
-
 const maskCardNumber = (cardNumber: string | null) => {
   const digits = cardNumber?.replace(/\D/g, '') ?? ''
   if (digits.length <= 4) return cardNumber || ''
   return `•••• ${digits.slice(-4)}`
+}
+
+const isBlobUrl = (url: string | null): url is string => Boolean(url?.startsWith('blob:'))
+
+const revokePreview = (url: string | null) => {
+  if (isBlobUrl(url)) URL.revokeObjectURL(url)
+}
+
+const suggestProviderFromFilename = (filename: string) => {
+  const cleaned = filename
+    .replace(/\.[^.]+$/, '')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b(img|image|photo|foto|kép|scan|card|kartya|kártya)\b/gi, '')
+    .replace(/\b\d{4,}\b/g, '')
+    .trim()
+
+  return /^[\p{L}\d .&'+-]{3,40}$/u.test(cleaned) ? cleaned : ''
 }
 
 const getInitialForm = (card?: LoyaltyCard | null): CardFormState =>
@@ -71,7 +89,7 @@ const getInitialForm = (card?: LoyaltyCard | null): CardFormState =>
         provider: card.provider ?? '',
         cardNumber: card.card_number ?? '',
         barcodeValue: card.barcode_value ?? '',
-        barcodeFormat: card.barcode_format ?? 'code128',
+        barcodeFormat: card.barcode_format ?? 'other',
         color: card.color ?? '#0f766e',
         icon: card.icon ?? '★',
         notes: card.notes ?? '',
@@ -105,17 +123,31 @@ export function LoyaltyCardsView({
   onAddTransaction,
 }: LoyaltyCardsViewProps) {
   const saveLockRef = useRef(false)
+  const scanAbortRef = useRef<AbortController | null>(null)
+  const liveControlsRef = useRef<IScannerControls | null>(null)
+  const frontPreviewRef = useRef<string | null>(null)
+  const backPreviewRef = useRef<string | null>(null)
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+  const frontCameraInputRef = useRef<HTMLInputElement | null>(null)
+  const frontGalleryInputRef = useRef<HTMLInputElement | null>(null)
+  const backCameraInputRef = useRef<HTMLInputElement | null>(null)
+  const backGalleryInputRef = useRef<HTMLInputElement | null>(null)
+
   const [cards, setCards] = useState<LoyaltyCard[]>([])
   const [imageUrls, setImageUrls] = useState<ImageUrls>({})
   const [selectedCard, setSelectedCard] = useState<LoyaltyCard | null>(null)
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingCard, setEditingCard] = useState<LoyaltyCard | null>(null)
+  const [formStep, setFormStep] = useState<FormStep>('front')
   const [form, setForm] = useState<CardFormState>(emptyForm)
   const [frontFile, setFrontFile] = useState<File | null>(null)
   const [backFile, setBackFile] = useState<File | null>(null)
   const [frontPreview, setFrontPreview] = useState<string | null>(null)
   const [backPreview, setBackPreview] = useState<string | null>(null)
   const [showBackImage, setShowBackImage] = useState(false)
+  const [recognitionState, setRecognitionState] = useState<RecognitionState>('idle')
+  const [recognitionMessage, setRecognitionMessage] = useState('')
+  const [isLiveScanning, setIsLiveScanning] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [message, setMessage] = useState<Message | null>(null)
@@ -128,6 +160,9 @@ export function LoyaltyCardsView({
     () => cards.filter((card) => !card.is_favorite),
     [cards],
   )
+
+  const isBusy = isSaving || recognitionState === 'scanning' || isLiveScanning
+  const currentCode = form.barcodeValue.trim() || form.cardNumber.trim()
 
   const refreshSignedUrls = async (nextCards: LoyaltyCard[]) => {
     const entries = await Promise.all(
@@ -154,61 +189,157 @@ export function LoyaltyCardsView({
   }, [userId])
 
   useEffect(() => {
+    frontPreviewRef.current = frontPreview
+  }, [frontPreview])
+
+  useEffect(() => {
+    backPreviewRef.current = backPreview
+  }, [backPreview])
+
+  useEffect(() => {
     return () => {
-      if (frontPreview) URL.revokeObjectURL(frontPreview)
-      if (backPreview) URL.revokeObjectURL(backPreview)
+      revokePreview(frontPreviewRef.current)
+      revokePreview(backPreviewRef.current)
+      scanAbortRef.current?.abort()
+      liveControlsRef.current?.stop()
     }
-  }, [backPreview, frontPreview])
+  }, [])
 
   const updateForm = (field: keyof CardFormState, value: string | boolean) => {
     setForm((currentForm) => ({ ...currentForm, [field]: value }))
   }
 
-  const setImageFile = (side: 'front' | 'back', file: File | null) => {
-    if (file) {
-      const validationError = validateLoyaltyCardImage(file)
-      if (validationError) {
-        setMessage({ type: 'error', text: validationError })
+  const stopLiveScan = () => {
+    liveControlsRef.current?.stop()
+    liveControlsRef.current = null
+    setIsLiveScanning(false)
+  }
+
+  const applyDetectedBarcode = (value: string, format: BarcodeFormat) => {
+    setForm((currentForm) => ({
+      ...currentForm,
+      barcodeValue: value,
+      barcodeFormat: format,
+      cardNumber: currentForm.cardNumber || value,
+    }))
+    setRecognitionState('success')
+    setRecognitionMessage('Vonalkód felismerve')
+    setFormStep('confirm')
+  }
+
+  const runBarcodeDetection = async (file: File, side: 'front' | 'back') => {
+    scanAbortRef.current?.abort()
+    const controller = new AbortController()
+    scanAbortRef.current = controller
+    setRecognitionState('scanning')
+    setRecognitionMessage('Vonalkód keresése...')
+
+    try {
+      const detectedBarcode = await detectBarcodeFromFile(file, controller.signal)
+      if (controller.signal.aborted) return
+
+      if (detectedBarcode) {
+        applyDetectedBarcode(detectedBarcode.value, detectedBarcode.format)
         return
       }
-    }
 
-    const preview = file ? URL.createObjectURL(file) : null
-    if (side === 'front') {
-      if (frontPreview) URL.revokeObjectURL(frontPreview)
-      setFrontFile(file)
-      setFrontPreview(preview)
-    } else {
-      if (backPreview) URL.revokeObjectURL(backPreview)
-      setBackFile(file)
-      setBackPreview(preview)
+      if (side === 'front') {
+        setRecognitionState('idle')
+        setRecognitionMessage('')
+        setFormStep('barcode')
+      } else {
+        setRecognitionState('failed')
+        setRecognitionMessage('Nem találtunk jól olvasható vonalkódot.')
+      }
+    } catch (error) {
+      if (controller.signal.aborted) return
+      setRecognitionState(side === 'front' ? 'idle' : 'failed')
+      setRecognitionMessage(
+        error instanceof Error ? error.message : 'Nem találtunk jól olvasható vonalkódot.',
+      )
+      if (side === 'front') setFormStep('barcode')
     }
   }
 
+  const setImageFile = async (side: 'front' | 'back', file: File | null) => {
+    if (!file) return
+    setMessage(null)
+
+    try {
+      const preparedImage = await prepareBarcodeImage(file)
+      if (side === 'front') {
+        revokePreview(frontPreview)
+        setFrontFile(preparedImage.file)
+        setFrontPreview(preparedImage.previewUrl)
+        setForm((currentForm) => ({
+          ...currentForm,
+          provider: currentForm.provider || suggestProviderFromFilename(file.name),
+        }))
+      } else {
+        revokePreview(backPreview)
+        setBackFile(preparedImage.file)
+        setBackPreview(preparedImage.previewUrl)
+      }
+
+      await runBarcodeDetection(preparedImage.file, side)
+    } catch (error) {
+      setRecognitionState(side === 'back' ? 'failed' : 'idle')
+      setRecognitionMessage(
+        error instanceof Error ? error.message : 'Nem sikerült beolvasni a képet.',
+      )
+      if (side === 'front') setFormStep('barcode')
+    }
+  }
+
+  const handleManualCode = (value: string) => {
+    setForm((currentForm) => ({
+      ...currentForm,
+      barcodeValue: value,
+      barcodeFormat: value.trim() ? inferManualBarcodeFormat(value) : 'other',
+      cardNumber: value.trim() ? value : currentForm.cardNumber,
+    }))
+  }
+
   const openCreate = () => {
+    scanAbortRef.current?.abort()
+    stopLiveScan()
     setEditingCard(null)
     setForm(emptyForm)
+    setFormStep('front')
     setFrontFile(null)
     setBackFile(null)
+    revokePreview(frontPreview)
+    revokePreview(backPreview)
     setFrontPreview(null)
     setBackPreview(null)
+    setRecognitionState('idle')
+    setRecognitionMessage('')
     setMessage(null)
     setIsFormOpen(true)
   }
 
   const openEdit = (card: LoyaltyCard) => {
+    scanAbortRef.current?.abort()
+    stopLiveScan()
     setEditingCard(card)
     setForm(getInitialForm(card))
+    setFormStep('confirm')
     setFrontFile(null)
     setBackFile(null)
-    setFrontPreview(null)
-    setBackPreview(null)
+    revokePreview(frontPreview)
+    revokePreview(backPreview)
+    setFrontPreview(imageUrls[card.id]?.front ?? null)
+    setBackPreview(imageUrls[card.id]?.back ?? null)
+    setRecognitionState(card.barcode_value ? 'success' : 'idle')
+    setRecognitionMessage(card.barcode_value ? 'Vonalkód felismerve' : '')
     setMessage(null)
     setIsFormOpen(true)
   }
 
   const closeForm = () => {
     if (isSaving) return
+    scanAbortRef.current?.abort()
+    stopLiveScan()
     setIsFormOpen(false)
   }
 
@@ -230,13 +361,14 @@ export function LoyaltyCardsView({
     setSelectedCard((currentCard) => (currentCard?.id === card.id ? card : currentCard))
   }
 
-  const handleSave = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSave = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (saveLockRef.current || isSaving) return
 
     const name = form.name.trim()
     if (!name) {
       setMessage({ type: 'error', text: 'Add meg a kártya nevét.' })
+      setFormStep('confirm')
       return
     }
 
@@ -244,14 +376,17 @@ export function LoyaltyCardsView({
     setIsSaving(true)
     setMessage(null)
     const uploadedPaths: string[] = []
+    let createdCardId: string | null = null
 
     try {
+      const barcodeValue = form.barcodeValue.trim()
+      const visibleNumber = form.cardNumber.trim() || barcodeValue
       const basePayload = {
         name,
         provider: form.provider.trim() || null,
-        card_number: form.cardNumber.trim() || null,
-        barcode_value: form.barcodeValue.trim() || null,
-        barcode_format: form.barcodeValue.trim() ? form.barcodeFormat : null,
+        card_number: visibleNumber || null,
+        barcode_value: barcodeValue || null,
+        barcode_format: barcodeValue ? form.barcodeFormat : null,
         color: form.color,
         icon: form.icon.trim() || null,
         notes: form.notes.trim() || null,
@@ -267,6 +402,7 @@ export function LoyaltyCardsView({
       }
 
       let nextCard = cardResult.data
+      if (!editingCard) createdCardId = nextCard.id
       const imageUpdates: { front_image_path?: string; back_image_path?: string } = {}
 
       if (frontFile) {
@@ -310,6 +446,9 @@ export function LoyaltyCardsView({
       setIsFormOpen(false)
     } catch (error) {
       await deleteStoredImages(uploadedPaths)
+      if (createdCardId && !editingCard) {
+        await deleteLoyaltyCard(createdCardId)
+      }
       setMessage({
         type: 'error',
         text: error instanceof Error ? error.message : 'Nem sikerült menteni a kártyát.',
@@ -354,13 +493,40 @@ export function LoyaltyCardsView({
     setMessage({ type: 'success', text: 'A kártya törölve.' })
   }
 
+  const startLiveScan = async () => {
+    if (!videoRef.current) return
+    setRecognitionState('scanning')
+    setRecognitionMessage('Vonalkód keresése...')
+    setIsLiveScanning(true)
+
+    try {
+      liveControlsRef.current = await startLiveBarcodeScanner({
+        videoElement: videoRef.current,
+        onDetected: (barcode) => {
+          applyDetectedBarcode(barcode.value, barcode.format)
+          stopLiveScan()
+        },
+        onError: (error) => {
+          setRecognitionState('failed')
+          setRecognitionMessage(error.message || 'Nem találtunk jól olvasható vonalkódot.')
+        },
+      })
+    } catch (error) {
+      setIsLiveScanning(false)
+      setRecognitionState('failed')
+      setRecognitionMessage(
+        error instanceof Error ? error.message : 'Nem sikerült megnyitni a kamerát.',
+      )
+    }
+  }
+
   const renderCardGrid = (items: LoyaltyCard[]) => (
     <div className="loyalty-card-grid">
       {items.map((card) => (
         <article
           className="loyalty-card-tile"
           key={card.id}
-          style={{ '--loyalty-card-color': card.color ?? 'var(--accent)' } as React.CSSProperties}
+          style={{ '--loyalty-card-color': card.color ?? 'var(--accent)' } as CSSProperties}
         >
           <button type="button" onClick={() => setSelectedCard(card)}>
             <span className="loyalty-card-preview" aria-hidden="true">
@@ -388,6 +554,285 @@ export function LoyaltyCardsView({
         </article>
       ))}
     </div>
+  )
+
+  const renderHiddenInputs = () => (
+    <>
+      <input
+        ref={frontCameraInputRef}
+        className="visually-hidden-file"
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={(event) => {
+          void setImageFile('front', event.target.files?.[0] ?? null)
+          event.target.value = ''
+        }}
+        disabled={isBusy}
+      />
+      <input
+        ref={frontGalleryInputRef}
+        className="visually-hidden-file"
+        type="file"
+        accept="image/*"
+        onChange={(event) => {
+          void setImageFile('front', event.target.files?.[0] ?? null)
+          event.target.value = ''
+        }}
+        disabled={isBusy}
+      />
+      <input
+        ref={backCameraInputRef}
+        className="visually-hidden-file"
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={(event) => {
+          void setImageFile('back', event.target.files?.[0] ?? null)
+          event.target.value = ''
+        }}
+        disabled={isBusy}
+      />
+      <input
+        ref={backGalleryInputRef}
+        className="visually-hidden-file"
+        type="file"
+        accept="image/*"
+        onChange={(event) => {
+          void setImageFile('back', event.target.files?.[0] ?? null)
+          event.target.value = ''
+        }}
+        disabled={isBusy}
+      />
+    </>
+  )
+
+  const renderPreview = (src: string | null, alt: string) =>
+    src ? (
+      <div className="loyalty-step-preview">
+        <img src={src} alt={alt} />
+      </div>
+    ) : null
+
+  const renderRecognitionResult = () => {
+    if (!['scanning', 'success', 'failed'].includes(recognitionState)) return null
+
+    return (
+      <div className={`recognition-result ${recognitionState}`} aria-live="polite">
+        {recognitionState === 'scanning' ? <strong>Vonalkód keresése...</strong> : null}
+        {recognitionState === 'success' ? (
+          <>
+            <strong>✓ Vonalkód felismerve</strong>
+            <span>{form.barcodeValue}</span>
+            <small>Formátum: {form.barcodeFormat}</small>
+          </>
+        ) : null}
+        {recognitionState === 'failed' ? (
+          <>
+            <strong>Nem találtunk jól olvasható vonalkódot.</strong>
+            {recognitionMessage &&
+            recognitionMessage !== 'Nem találtunk jól olvasható vonalkódot.' ? (
+              <small>{recognitionMessage}</small>
+            ) : null}
+          </>
+        ) : null}
+      </div>
+    )
+  }
+
+  const renderFrontStep = () => (
+    <section className="loyalty-step" aria-labelledby="cardFrontTitle">
+      <h3 id="cardFrontTitle">Kártya előlapja</h3>
+      <p className="loyalty-helper">Az előlap opcionális, de erősen ajánlott.</p>
+      <div className="loyalty-action-grid">
+        <button type="button" onClick={() => frontCameraInputRef.current?.click()} disabled={isBusy}>
+          Fénykép készítése
+        </button>
+        <button type="button" onClick={() => frontGalleryInputRef.current?.click()} disabled={isBusy}>
+          Kép kiválasztása
+        </button>
+      </div>
+      {renderPreview(frontPreview, 'Kártya előlapjának előnézete')}
+      {recognitionState === 'scanning' ? renderRecognitionResult() : null}
+      <div className="loyalty-step-actions">
+        <button
+          className="secondary-button compact-button"
+          type="button"
+          onClick={() => setFormStep('barcode')}
+          disabled={isBusy}
+        >
+          Tovább
+        </button>
+      </div>
+    </section>
+  )
+
+  const renderBarcodeStep = () => (
+    <section className="loyalty-step" aria-labelledby="barcodeStepTitle">
+      <h3 id="barcodeStepTitle">Vonalkód beolvasása</h3>
+      <p className="loyalty-helper">
+        Fotózd le azt az oldalt, amelyen a vonalkód vagy QR-kód található.
+      </p>
+      <div className="loyalty-action-grid">
+        <button type="button" onClick={() => backCameraInputRef.current?.click()} disabled={isBusy}>
+          Hátlap lefényképezése
+        </button>
+        <button type="button" onClick={() => backGalleryInputRef.current?.click()} disabled={isBusy}>
+          Kép kiválasztása
+        </button>
+        <button type="button" onClick={() => void startLiveScan()} disabled={isBusy}>
+          Kamera megnyitása
+        </button>
+      </div>
+      {renderPreview(backPreview, 'Kártya hátlapjának előnézete')}
+      <video
+        ref={videoRef}
+        className={isLiveScanning ? 'loyalty-live-video active' : 'loyalty-live-video'}
+        muted
+        playsInline
+      />
+      {renderRecognitionResult()}
+      {recognitionState === 'failed' ? (
+        <div className="loyalty-action-grid retry-actions">
+          <button type="button" onClick={() => backCameraInputRef.current?.click()} disabled={isBusy}>
+            Új fotó készítése
+          </button>
+          <button type="button" onClick={() => backGalleryInputRef.current?.click()} disabled={isBusy}>
+            Másik kép választása
+          </button>
+          <button type="button" onClick={() => void startLiveScan()} disabled={isBusy}>
+            Kód beolvasása kamerával
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setRecognitionState('manual')
+              setRecognitionMessage('')
+            }}
+            disabled={isBusy}
+          >
+            Szám kézi megadása
+          </button>
+        </div>
+      ) : null}
+      {recognitionState === 'manual' ? (
+        <label>
+          Kód vagy kártyaszám
+          <input
+            value={form.barcodeValue}
+            onChange={(event) => handleManualCode(event.target.value)}
+            disabled={isSaving}
+            inputMode="text"
+          />
+        </label>
+      ) : null}
+      <div className="loyalty-step-actions">
+        <button
+          className="secondary-button compact-button"
+          type="button"
+          onClick={() => setFormStep('front')}
+          disabled={isBusy}
+        >
+          Vissza
+        </button>
+        <button
+          className="secondary-button compact-button"
+          type="button"
+          onClick={() => setFormStep('confirm')}
+          disabled={isBusy}
+        >
+          Tovább
+        </button>
+      </div>
+    </section>
+  )
+
+  const renderConfirmStep = () => (
+    <section className="loyalty-step" aria-labelledby="confirmationStepTitle">
+      <h3 id="confirmationStepTitle">Megerősítés</h3>
+      {currentCode ? renderRecognitionResult() : null}
+      <label>
+        Kártya neve
+        <input
+          value={form.name}
+          onChange={(event) => updateForm('name', event.target.value)}
+          required
+          disabled={isSaving}
+        />
+      </label>
+      <label>
+        Szolgáltató / üzlet
+        <input
+          value={form.provider}
+          onChange={(event) => updateForm('provider', event.target.value)}
+          disabled={isSaving}
+        />
+      </label>
+      <div className="loyalty-code-row">
+        <label>
+          Felismert kód vagy kártyaszám
+          <input
+            value={form.barcodeValue}
+            onChange={(event) => handleManualCode(event.target.value)}
+            disabled={isSaving}
+          />
+        </label>
+        <button
+          className="secondary-button compact-button"
+          type="button"
+          onClick={() => setRecognitionState('manual')}
+          disabled={isSaving}
+        >
+          Kód javítása
+        </button>
+      </div>
+      <label className="checkbox-row">
+        <input
+          type="checkbox"
+          checked={form.isFavorite}
+          onChange={(event) => updateForm('isFavorite', event.target.checked)}
+          disabled={isSaving}
+        />
+        Kedvenc
+      </label>
+      <div className="loyalty-image-previews">
+        {frontPreview ? <img src={frontPreview} alt="Kártya előlapjának előnézete" /> : null}
+        {backPreview ? <img src={backPreview} alt="Kártya hátlapjának előnézete" /> : null}
+      </div>
+      <div className="loyalty-replace-actions">
+        <button type="button" onClick={() => setFormStep('front')} disabled={isSaving}>
+          Előlap cseréje
+        </button>
+        <button type="button" onClick={() => setFormStep('barcode')} disabled={isSaving}>
+          Újra beolvasás
+        </button>
+      </div>
+      <details className="loyalty-notes">
+        <summary>Jegyzetek</summary>
+        <label>
+          Jegyzet
+          <textarea
+            value={form.notes}
+            onChange={(event) => updateForm('notes', event.target.value)}
+            rows={3}
+            disabled={isSaving}
+          />
+        </label>
+      </details>
+      <div className="loyalty-step-actions">
+        <button
+          className="secondary-button compact-button"
+          type="button"
+          onClick={() => setFormStep('barcode')}
+          disabled={isSaving}
+        >
+          Vissza
+        </button>
+        <button className="primary-button" type="submit" disabled={isSaving}>
+          {isSaving ? 'Mentés...' : 'Mentés'}
+        </button>
+      </div>
+    </section>
   )
 
   const activeDetailImage =
@@ -460,7 +905,11 @@ export function LoyaltyCardsView({
               </button>
             </div>
             <div className="loyalty-detail-image">
-              {activeDetailImage ? <img src={activeDetailImage} alt="" /> : <span>{selectedCard.icon || '★'}</span>}
+              {activeDetailImage ? (
+                <img src={activeDetailImage} alt={showBackImage ? 'Kártya hátlapja' : 'Kártya előlapja'} />
+              ) : (
+                <span>{selectedCard.icon || '★'}</span>
+              )}
             </div>
             {imageUrls[selectedCard.id]?.back ? (
               <button className="secondary-button compact-button" type="button" onClick={() => setShowBackImage((value) => !value)}>
@@ -471,7 +920,6 @@ export function LoyaltyCardsView({
               <div><dt>Szolgáltató</dt><dd>{selectedCard.provider || 'Nincs megadva'}</dd></div>
               <div><dt>Kártyaszám</dt><dd>{selectedCard.card_number || 'Nincs megadva'}</dd></div>
               <div><dt>Vonalkód érték</dt><dd>{selectedCard.barcode_value || 'Nincs megadva'}</dd></div>
-              <div><dt>Vonalkód típus</dt><dd>{selectedCard.barcode_format || 'Nincs megadva'}</dd></div>
               <div><dt>Jegyzet</dt><dd>{selectedCard.notes || 'Nincs megadva'}</dd></div>
             </dl>
             <div className="modal-actions">
@@ -490,7 +938,7 @@ export function LoyaltyCardsView({
       ) : null}
 
       {isFormOpen ? (
-        <div className="modal-backdrop" role="presentation">
+        <div className="modal-backdrop loyalty-sheet-backdrop" role="presentation">
           <section className="modal-panel loyalty-form-panel" role="dialog" aria-modal="true">
             <div className="panel-header">
               <div>
@@ -502,30 +950,18 @@ export function LoyaltyCardsView({
               </button>
             </div>
             <form className="loyalty-form" onSubmit={handleSave}>
-              <label>Kártya neve<input value={form.name} onChange={(event) => updateForm('name', event.target.value)} required disabled={isSaving} /></label>
-              <label>Szolgáltató<input value={form.provider} onChange={(event) => updateForm('provider', event.target.value)} disabled={isSaving} /></label>
-              <label>Kártyaszám<input value={form.cardNumber} onChange={(event) => updateForm('cardNumber', event.target.value)} disabled={isSaving} /></label>
-              <div className="list-form-row">
-                <label>Vonalkód érték<input value={form.barcodeValue} onChange={(event) => updateForm('barcodeValue', event.target.value)} disabled={isSaving} /></label>
-                <label>Vonalkód típus<select value={form.barcodeFormat} onChange={(event) => updateForm('barcodeFormat', event.target.value as BarcodeFormat)} disabled={isSaving}>{barcodeFormats.map((format) => <option key={format.value} value={format.value}>{format.label}</option>)}</select></label>
+              {renderHiddenInputs()}
+              <div className="loyalty-step-indicator" aria-hidden="true">
+                <span className={formStep === 'front' ? 'active' : ''}>1</span>
+                <span className={formStep === 'barcode' ? 'active' : ''}>2</span>
+                <span className={formStep === 'confirm' ? 'active' : ''}>3</span>
               </div>
-              <div className="list-form-row">
-                <label>Szín<input type="color" value={form.color} onChange={(event) => updateForm('color', event.target.value)} disabled={isSaving} /></label>
-                <label>Ikon<input value={form.icon} maxLength={3} onChange={(event) => updateForm('icon', event.target.value)} disabled={isSaving} /></label>
-              </div>
-              <div className="list-form-row">
-                <label>Előlap képe<input type="file" accept="image/*" capture="environment" onChange={(event) => setImageFile('front', event.target.files?.[0] ?? null)} disabled={isSaving} /></label>
-                <label>Hátlap képe<input type="file" accept="image/*" capture="environment" onChange={(event) => setImageFile('back', event.target.files?.[0] ?? null)} disabled={isSaving} /></label>
-              </div>
-              {(frontPreview || backPreview) ? (
-                <div className="loyalty-image-previews">
-                  {frontPreview ? <img src={frontPreview} alt="Előlap előnézet" /> : null}
-                  {backPreview ? <img src={backPreview} alt="Hátlap előnézet" /> : null}
-                </div>
-              ) : null}
-              <label>Jegyzet<textarea value={form.notes} onChange={(event) => updateForm('notes', event.target.value)} rows={3} disabled={isSaving} /></label>
-              <label className="checkbox-row"><input type="checkbox" checked={form.isFavorite} onChange={(event) => updateForm('isFavorite', event.target.checked)} disabled={isSaving} /> Kedvenc</label>
-              <button className="primary-button" type="submit" disabled={isSaving}>{isSaving ? 'Mentés...' : 'Mentés'}</button>
+              <p className="sr-status" aria-live="polite">
+                {recognitionState === 'scanning' ? 'Vonalkód keresése...' : recognitionMessage}
+              </p>
+              {formStep === 'front' ? renderFrontStep() : null}
+              {formStep === 'barcode' ? renderBarcodeStep() : null}
+              {formStep === 'confirm' ? renderConfirmStep() : null}
             </form>
           </section>
         </div>

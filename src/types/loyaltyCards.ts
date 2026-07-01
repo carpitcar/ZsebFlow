@@ -1,4 +1,14 @@
-export type BarcodeFormat = 'code128' | 'ean13' | 'ean8' | 'qr' | 'other'
+export type BarcodeFormat =
+  | 'code128'
+  | 'ean13'
+  | 'ean8'
+  | 'qr'
+  | 'upca'
+  | 'upce'
+  | 'datamatrix'
+  | 'itf'
+  | 'codabar'
+  | 'other'
 
 export type LoyaltyCard = {
   id: string

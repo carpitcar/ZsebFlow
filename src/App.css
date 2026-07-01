@@ -888,6 +888,17 @@ textarea[aria-invalid='true'] {
   width: min(100%, 560px);
 }
 
+.loyalty-sheet-backdrop {
+  place-items: end center;
+  padding: 20px 16px 0;
+}
+
+.loyalty-sheet-backdrop .loyalty-form-panel {
+  max-height: min(92svh, 760px);
+  border-radius: 8px 8px 0 0;
+  padding-bottom: max(18px, env(safe-area-inset-bottom));
+}
+
 .loyalty-detail-image {
   width: 100%;
   aspect-ratio: 1.58;
@@ -907,6 +918,225 @@ textarea[aria-invalid='true'] {
 .loyalty-form {
   display: grid;
   gap: 12px;
+}
+
+.loyalty-step {
+  min-width: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.loyalty-step h3 {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.loyalty-helper {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.loyalty-step-indicator {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.loyalty-step-indicator span {
+  min-height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--control-bg);
+  color: transparent;
+}
+
+.loyalty-step-indicator span.active {
+  background: var(--accent);
+}
+
+.loyalty-action-grid,
+.loyalty-replace-actions {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.loyalty-action-grid button,
+.loyalty-replace-actions button {
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-strong);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.2;
+  padding: 9px 10px;
+}
+
+.loyalty-action-grid button:disabled,
+.loyalty-replace-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.68;
+}
+
+.loyalty-step-preview,
+.loyalty-live-video {
+  width: 100%;
+  aspect-ratio: 1.58;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-strong);
+}
+
+.loyalty-step-preview img,
+.loyalty-live-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.loyalty-live-video {
+  display: none;
+}
+
+.loyalty-live-video.active {
+  display: block;
+}
+
+.recognition-result {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--control-bg);
+  padding: 10px;
+}
+
+.recognition-result:empty {
+  display: none;
+}
+
+.recognition-result strong {
+  color: var(--text-strong);
+  font-size: 14px;
+}
+
+.recognition-result span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--text-strong);
+  font-size: 16px;
+  font-weight: 850;
+  line-height: 1.25;
+}
+
+.recognition-result small {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.recognition-result.success {
+  border-color: color-mix(in srgb, var(--success-text) 42%, var(--border));
+  background: var(--success-bg);
+}
+
+.recognition-result.failed {
+  border-color: color-mix(in srgb, var(--danger-text) 42%, var(--border));
+  background: var(--error-bg);
+}
+
+.loyalty-code-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.loyalty-step-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  gap: 8px;
+  margin: 2px -2px -2px;
+  padding: 8px 2px 2px;
+  background: var(--surface);
+}
+
+.loyalty-step-actions .primary-button {
+  min-width: 0;
+}
+
+.loyalty-notes {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--control-bg);
+  padding: 10px;
+}
+
+.loyalty-notes summary {
+  cursor: pointer;
+  color: var(--text-strong);
+  font-weight: 750;
+}
+
+.loyalty-notes label {
+  margin-top: 10px;
+}
+
+.visually-hidden-file,
+.sr-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (max-width: 420px) {
+  .loyalty-sheet-backdrop {
+    padding-inline: 0;
+  }
+
+  .loyalty-action-grid,
+  .loyalty-replace-actions {
+    gap: 7px;
+  }
+
+  .loyalty-action-grid button,
+  .loyalty-replace-actions button {
+    min-height: 42px;
+    font-size: 12px;
+    padding: 8px;
+  }
+
+  .loyalty-code-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .recognition-result span {
+    font-size: 15px;
+  }
 }
 
 .loyalty-image-previews {
