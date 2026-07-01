@@ -246,7 +246,6 @@ export function TransactionEditForm({
         type: values.type,
         amount,
         currency: normalizeCurrencyCode(values.currency),
-        payment_method: null,
         transaction_date: values.transactionDate,
         merchant_name: merchantName || null,
         note: note || null,
