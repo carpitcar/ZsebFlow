@@ -107,7 +107,9 @@ export async function ensureDefaultPaymentSources(userId: string) {
 
 export async function loadPaymentSources(userId: string) {
   const defaultResult = await ensureDefaultPaymentSources(userId)
-  if (defaultResult.error) return defaultResult
+  if (defaultResult.error && defaultResult.data.length === 0) {
+    return defaultResult
+  }
 
   const { data, error } = await supabase
     .from('payment_sources')

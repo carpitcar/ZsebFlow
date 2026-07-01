@@ -4,7 +4,8 @@ drop constraint if exists payment_sources_system_key_check;
 alter table public.payment_sources
 add constraint payment_sources_system_key_check
 check (
-  system_key is null or system_key ~ '^[a-z0-9_]+$'
+  system_key is null
+  or system_key ~ '^[a-z0-9_]+$'
 );
 
 insert into public.payment_sources (

@@ -13,14 +13,7 @@ create table if not exists public.payment_sources (
   updated_at timestamptz not null default now(),
   constraint payment_sources_name_not_blank check (length(btrim(name)) > 0),
   constraint payment_sources_system_key_check check (
-    system_key is null or system_key in (
-      'card',
-      'szep_card',
-      'cash',
-      'bank_transfer',
-      'revolut',
-      'health_fund'
-    )
+    system_key is null or system_key ~ '^[a-z0-9_]+$'
   )
 );
 
