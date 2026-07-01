@@ -13,7 +13,7 @@ type ExportTransactionsOptions = {
 
 const parseLocalDate = (dateValue: string) => new Date(`${dateValue}T00:00:00`)
 
-const numberFormat = '# ##0.00;-# ##0.00'
+const numberFormat = '# ##0.##;-# ##0.##'
 
 export async function exportTransactionsXlsx({
   transactions,
@@ -72,7 +72,7 @@ export async function exportTransactionsXlsx({
     })
 
     row.getCell('date').numFmt = 'yyyy. mm. dd.'
-    row.getCell('amount').numFmt = currencyCode === 'HUF' ? '# ##0' : numberFormat
+    row.getCell('amount').numFmt = numberFormat
   })
 
   const summarySheet = workbook.addWorksheet('Összesítő')
@@ -123,9 +123,9 @@ export async function exportTransactionsXlsx({
         summary.income - summary.expense,
         summary.count,
       ])
-      row.getCell(2).numFmt = currencyCode === 'HUF' ? '# ##0' : numberFormat
-      row.getCell(3).numFmt = currencyCode === 'HUF' ? '# ##0' : numberFormat
-      row.getCell(4).numFmt = currencyCode === 'HUF' ? '# ##0' : numberFormat
+      row.getCell(2).numFmt = numberFormat
+      row.getCell(3).numFmt = numberFormat
+      row.getCell(4).numFmt = numberFormat
     })
   summarySheet.addRow([])
   summarySheet.addRow(['Kategória', 'Típus', 'Pénznem', 'Összeg', 'Tranzakciók száma'])
@@ -186,7 +186,7 @@ export async function exportTransactionsXlsx({
         summary.amount,
         summary.count,
       ])
-      row.getCell(4).numFmt = summary.currency === 'HUF' ? '# ##0' : numberFormat
+      row.getCell(4).numFmt = numberFormat
     })
 
   summarySheet.views = [{ state: 'frozen', ySplit: 5 }]

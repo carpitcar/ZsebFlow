@@ -1,25 +1,43 @@
-export const sanitizeMoneyInput = (value: string): string =>
-  value.replace(/\D/g, '')
+const completeMoneyInputPattern = /^\d+(?:\.\d{1,2})?$/
+const editableMoneyInputPattern = /^\d*(?:[.,]\d{0,2})?$/
+const duplicatedTrailingSeparatorPattern = /^\d+[.,]{2}$/
 
-export const formatMoneyInput = (value: string): string => {
-  const cleanValue = sanitizeMoneyInput(value)
+export const isEditableMoneyInput = (value: string): boolean =>
+  editableMoneyInputPattern.test(value) ||
+  duplicatedTrailingSeparatorPattern.test(value)
 
-  if (!cleanValue) {
+export const numberToMoneyInput = (value: number | string) => {
+  const normalizedValue = String(value).trim().replace(/\s/g, '')
+
+  if (!normalizedValue) {
     return ''
   }
 
-  return Number(cleanValue).toLocaleString('hu-HU').replace(/\u00a0/g, ' ')
-}
-
-export const parseMoneyInput = (value: string): number =>
-  Number(sanitizeMoneyInput(value) || 0)
-
-export const numberToMoneyInput = (value: number | string) => {
-  const parsedValue = Number(value)
+  const parsedValue = Number(normalizedValue.replace(',', '.'))
 
   if (!Number.isFinite(parsedValue) || parsedValue < 0) {
     return ''
   }
 
-  return String(Math.trunc(parsedValue))
+  return normalizedValue
+    .replace(',', '.')
+    .replace(/(\.\d*?)0+$/, '$1')
+    .replace(/\.$/, '')
+    .replace('.', ',')
+}
+
+export const parseMoneyInput = (value: string): number | null => {
+  const normalizedValue = value.trim().replace(/\s/g, '').replace(',', '.')
+
+  if (!completeMoneyInputPattern.test(normalizedValue)) {
+    return null
+  }
+
+  const parsedValue = Number(normalizedValue)
+
+  if (!Number.isFinite(parsedValue) || parsedValue <= 0) {
+    return null
+  }
+
+  return parsedValue
 }

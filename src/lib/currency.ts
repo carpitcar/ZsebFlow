@@ -29,8 +29,8 @@ export const formatCurrency = (
   const formatter = new Intl.NumberFormat('hu-HU', {
     style: 'currency',
     currency: normalizedCurrencyCode,
-    maximumFractionDigits: normalizedCurrencyCode === 'HUF' ? 0 : 2,
-    minimumFractionDigits: normalizedCurrencyCode === 'HUF' ? 0 : 2,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
   })
 
   return formatter.format(value).replace(/\u00a0/g, ' ')

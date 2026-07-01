@@ -204,10 +204,10 @@ export function TransactionEditForm({
     const merchantName = values.merchantName.trim()
     const note = values.note.trim()
 
-    if (amount <= 0) {
+    if (amount === null) {
       setMessage({
         type: 'error',
-        text: 'Az összegnek pozitív számnak kell lennie.',
+        text: 'Adj meg egy érvényes összeget, legfeljebb két tizedesjeggyel.',
       })
       return
     }

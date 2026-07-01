@@ -1,4 +1,4 @@
-import { formatMoneyInput, sanitizeMoneyInput } from '../lib/money'
+import { isEditableMoneyInput } from '../lib/money'
 
 type MoneyInputProps = {
   id: string
@@ -21,10 +21,16 @@ export function MoneyInput({
       <input
         id={id}
         type="text"
-        inputMode="numeric"
+        inputMode="decimal"
         autoComplete="off"
-        value={formatMoneyInput(value)}
-        onChange={(event) => onChange(sanitizeMoneyInput(event.target.value))}
+        value={value}
+        onChange={(event) => {
+          const nextValue = event.target.value
+
+          if (isEditableMoneyInput(nextValue)) {
+            onChange(nextValue)
+          }
+        }}
         required={required}
       />
     </label>

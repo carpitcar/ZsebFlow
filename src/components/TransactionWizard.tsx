@@ -185,8 +185,8 @@ export function TransactionWizard({
     ]
   }, [activeCurrencies, userId, values.currency])
 
-  const amount = parseMoneyInput(values.amount)
-  const isAmountValid = amount > 0
+  const parsedAmount = parseMoneyInput(values.amount)
+  const isAmountValid = parsedAmount !== null
   const isExpense = values.type === 'expense'
   const visiblePaymentSources = useMemo(
     () =>
@@ -305,7 +305,7 @@ export function TransactionWizard({
     if (!isAmountValid) {
       setMessage({
         type: 'error',
-        text: 'Az összegnek pozitív számnak kell lennie.',
+        text: 'Adj meg egy érvényes összeget, legfeljebb két tizedesjeggyel.',
       })
       return
     }
@@ -364,13 +364,14 @@ export function TransactionWizard({
     }
 
     setMessage(null)
+    const amount = parseMoneyInput(values.amount)
     const merchantName = values.merchantName.trim()
     const note = values.note.trim()
 
-    if (!isAmountValid) {
+    if (amount === null) {
       setMessage({
         type: 'error',
-        text: 'Az összegnek pozitív számnak kell lennie.',
+        text: 'Adj meg egy érvényes összeget, legfeljebb két tizedesjeggyel.',
       })
       setStep(2)
       return
@@ -924,7 +925,7 @@ export function TransactionWizard({
                   </div>
                   <div>
                     <dt>Összeg</dt>
-                    <dd>{formatCurrency(amount, values.currency)}</dd>
+                    <dd>{formatCurrency(parsedAmount ?? 0, values.currency)}</dd>
                   </div>
                   <div>
                     <dt>{isExpense ? 'Mivel fizettél?' : 'Hová érkezett?'}</dt>
